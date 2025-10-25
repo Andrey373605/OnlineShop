@@ -1,0 +1,39 @@
+# Среда выполнения и кеши
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+.build/
+dist/
+
+# Среда разработки
+.venv/
+env/
+venv/
+
+# Тесты и покрытие
+.coverage
+htmlcov/
+.pytest_cache/
+.cache/
+
+# Конфигурация IDE
+.vscode/
+.idea/
+
+# Переменные окружения
+.env
+
+# Бинарные / временные файлы
+*.log
+*.tmp
+
+# uv (новый менеджер пакетов)
+uv.lock
+
+# Docker
+**/tmp/
+
