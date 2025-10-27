@@ -1,7 +1,7 @@
 from typing import Optional
 import asyncpg
 import aiosql
-from shop.app.config import settings
+from shop.app.core.config import settings
 
 queries = aiosql.from_path("shop/app/queries/", "asyncpg")
 

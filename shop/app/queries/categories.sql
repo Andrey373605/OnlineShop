@@ -4,7 +4,7 @@
 SELECT id, name
 FROM categories;
 
--- name: get-category-by-id
+-- name: get-category-by-id^
 SELECT id, name
 FROM categories
 WHERE id = :id;
@@ -23,4 +23,10 @@ RETURNING id, name;
 -- name: delete-category^
 DELETE FROM categories
 WHERE id = :id
-RETURNING id
+RETURNING id;
+
+-- name: check_category_id_exists^
+SELECT EXISTS(SELECT 1 FROM categories WHERE id = :id) as exists;
+
+-- name: check_category_name_exists^
+SELECT EXISTS(SELECT 1 FROM categories WHERE name = :name) as exists;

@@ -1,14 +1,17 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from shop.app.routers import categories_router
-from shop.app.config import settings
-from shop.app.db import get_db_pool, close_db_pool
+
+from shop.app.api.v1 import categories, products
+from shop.app.core.config import settings
+from shop.app.core.db import get_db_pool, close_db_pool
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await get_db_pool()
     yield
     await close_db_pool()
+
 
 app = FastAPI(
     title="Products API with Service Layer and aiosql",
@@ -18,7 +21,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-app.include_router(categories_router.router)
+app.include_router(categories.router)
+app.include_router(products.router)
+
 
 # Health check endpoint
 @app.get("/")
@@ -29,6 +34,7 @@ async def root():
         "docs": "/docs"
     }
 
+
 @app.get("/health")
 async def health_check():
     return {
@@ -37,8 +43,10 @@ async def health_check():
         "database": "connected"
     }
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
         "shop.app.main:app",
         host=settings.APP_HOST,

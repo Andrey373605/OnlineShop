@@ -13,9 +13,14 @@ SELECT p.id,
        c.id as category_id,
        c.name as category_name
 FROM products p
-LEFT JOIN categories c ON p.category_id = c.id;
+LEFT JOIN categories c ON p.category_id = c.id
+ORDER BY p.id
+LIMIT :limit OFFSET :offset;
 
--- name: get-product-by-id
+-- name: get-products-count
+SELECT COUNT(*) as total FROM products p;
+
+-- name: get-product-by-id^
 SELECT p.id,
        p.title,
        p.description,
@@ -29,7 +34,7 @@ SELECT p.id,
        c.id as category_id,
        c.name as categoty_name,
        COALESCE(
-            (SELECT json_agg(json_build_object('id', pi.id, 'url', pi.url))
+            (SELECT json_agg(json_build_object('id', pi.id, 'path', pi.image_path))
              FROM product_images pi
              WHERE pi.product_id = p.id),
             '[]'
@@ -38,12 +43,12 @@ FROM products p
 LEFT JOIN categories c ON p.category_id = c.id
 WHERE p.id = :id;
 
--- name: create-product!
+-- name: create-product^
 INSERT INTO products (title, description, price, stock, brand, thumbnail_url, is_published, category_id)
 VALUES (:title, :description, :price, :stock, :brand, :thumbnail_url, :is_published, :category_id)
 RETURNING id;
 
--- name: updated-product!
+-- name: updated-product^
 UPDATE products
 SET
     title         = COALESCE(:title, title),
@@ -58,7 +63,10 @@ SET
 WHERE id = :id
 RETURNING id;
 
--- name: delete-product!
+-- name: delete-product^
 DELETE FROM products
 WHERE id = :id
 RETURNING id;
+
+-- name: check_category_id_exists^
+SELECT EXISTS(SELECT 1 FROM products WHERE id = :id) as exists;
