@@ -67,6 +67,3 @@ RETURNING id;
 DELETE FROM products
 WHERE id = :id
 RETURNING id;
-
--- name: check_category_id_exists^
-SELECT EXISTS(SELECT 1 FROM products WHERE id = :id) as exists;
