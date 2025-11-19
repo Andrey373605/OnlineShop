@@ -81,6 +81,11 @@ SET username      = COALESCE(:username, username),
 WHERE id = :id
 RETURNING id;
 
+-- name: update-last-login^
+UPDATE users
+SET last_login = :last_login, updated_at = NOW()
+WHERE id = :id;
+
 -- name: delete-user^
 DELETE FROM users
 WHERE id = :id

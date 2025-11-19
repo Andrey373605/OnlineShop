@@ -1,3 +1,8 @@
+CREATE TABLE roles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR (50) NOT NULL UNIQUE
+);
+
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(30) NOT NULL UNIQUE,
@@ -6,7 +11,9 @@ CREATE TABLE users (
     full_name VARCHAR(100) NOT NULL,
     is_active BOOLEAN NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
-    role VARCHAR(30) NOT NULL
+    role INTEGER NOT NULL REFERENCES roles(id),
+    last_login TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE categories (

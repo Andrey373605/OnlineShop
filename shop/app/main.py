@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 
-from shop.app.api.v1 import categories, products
+from shop.app.api.v1 import auth, categories, products
 from shop.app.core.config import settings
 from shop.app.core.db import get_db_pool, close_db_pool
 
@@ -12,6 +12,12 @@ async def lifespan(app: FastAPI):
     yield
     await close_db_pool()
 
+api_router = APIRouter(prefix="/api/v1")
+
+api_router.include_router(auth.router)
+api_router.include_router(categories.router)
+api_router.include_router(products.router)
+
 
 app = FastAPI(
     title="Products API with Service Layer and aiosql",
@@ -20,10 +26,7 @@ app = FastAPI(
     debug=settings.DEBUG,
     lifespan=lifespan
 )
-
-app.include_router(categories.router)
-app.include_router(products.router)
-
+app.include_router(api_router)
 
 # Health check endpoint
 @app.get("/")

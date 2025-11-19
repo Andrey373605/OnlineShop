@@ -1,4 +1,6 @@
-from shop.app.schemas.user_schemas import UserOut
+from datetime import datetime
+
+from shop.app.schemas.user_schemas import UserDB, UserOut
 
 
 class UserRepository:
@@ -22,12 +24,12 @@ class UserRepository:
         row = await self.queries.get_user_by_id(self.conn, id=user_id)
         return UserOut(**row) if row else None
 
-    async def get_by_username(self, username: str) -> UserOut | None:
+    async def get_by_username(self, username: str) -> UserDB | None:
         row = await self.queries.get_user_by_username(
             self.conn,
             username=username,
         )
-        return UserOut(**row) if row else None
+        return UserDB(**row) if row else None
 
     async def create(self, user_data: dict) -> int:
         result = await self.queries.create_user(self.conn, **user_data)
@@ -38,6 +40,14 @@ class UserRepository:
             self.conn,
             id=user_id,
             **update_data,
+        )
+        return bool(result)
+
+    async def update_last_login(self, user_id: int, last_login=datetime.now()) -> bool:
+        result = await self.queries.update_last_login(
+            self.conn,
+            id=user_id,
+            last_login=last_login
         )
         return bool(result)
 
