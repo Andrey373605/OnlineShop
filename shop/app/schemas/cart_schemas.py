@@ -1,7 +1,9 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from shop.app.schemas.cart_item_schemas import CartItemOut
 
 
 class CartBase(BaseModel):
@@ -23,6 +25,10 @@ class CartOut(CartBase):
     id: int
     created_at: datetime
     username: str | None = None
+
+
+class CartWithItems(CartOut):
+    items: list[CartItemOut] = Field(default_factory=list)
 
 
 

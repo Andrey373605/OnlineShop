@@ -1,4 +1,4 @@
-from pydantic import BaseModel, AnyUrl
+from pydantic import BaseModel
 
 
 class ProductImageBase(BaseModel):
@@ -17,6 +17,18 @@ class ProductImageUpdate(BaseModel):
 
 class ProductImageOut(ProductImageBase):
     id: int
+
+
+class ProductImageResponse(BaseModel):
+    id: int
+    message: str
+
+
+class ProductImagesDeleteResponse(BaseModel):
+    product_id: int
+    deleted_ids: list[int]
+
+
 
 
 

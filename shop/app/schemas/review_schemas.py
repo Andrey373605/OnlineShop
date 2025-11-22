@@ -4,7 +4,6 @@ from pydantic import BaseModel
 
 
 class ReviewBase(BaseModel):
-    user_id: int
     product_id: int
     title: str
     description: str | None = None
@@ -12,7 +11,7 @@ class ReviewBase(BaseModel):
 
 
 class ReviewCreate(ReviewBase):
-    pass
+    ...
 
 
 class ReviewUpdate(BaseModel):
@@ -23,6 +22,7 @@ class ReviewUpdate(BaseModel):
 
 class ReviewOut(ReviewBase):
     id: int
+    user_id: int
     created_at: datetime
     updated_at: datetime
     username: str | None = None

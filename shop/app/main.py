@@ -1,7 +1,18 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 
-from shop.app.api.v1 import auth, categories, products
+from shop.app.api.v1 import (
+    auth,
+    cart,
+    categories,
+    orders,
+    product_images,
+    product_specifications,
+    products,
+    reviews,
+    roles,
+    users,
+)
 from shop.app.core.config import settings
 from shop.app.core.db import get_db_pool, close_db_pool
 
@@ -17,6 +28,13 @@ api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth.router)
 api_router.include_router(categories.router)
 api_router.include_router(products.router)
+api_router.include_router(cart.router)
+api_router.include_router(product_images.router)
+api_router.include_router(product_specifications.router)
+api_router.include_router(roles.router)
+api_router.include_router(users.router)
+api_router.include_router(orders.router)
+api_router.include_router(reviews.router)
 
 
 app = FastAPI(

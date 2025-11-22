@@ -49,10 +49,6 @@ class ProductService:
         if not check_exist:
             raise HTTPException(status_code=404, detail="Product not found")
 
-        # Бизнес-логика: можно ли удалять?
-        # if product.has_products():
-        #     raise HTTPException(status_code=400, detail="Cannot delete product with products")
-
         success = await self.product_repo.delete(product_id)
 
         if not success:

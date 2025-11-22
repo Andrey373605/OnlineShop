@@ -6,7 +6,7 @@ from shop.app.dependencies.repositories import get_user_repository
 from shop.app.repositories.user_repository import UserRepository
 from shop.app.schemas.user_schemas import UserOut
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
 
 async def get_current_user(
@@ -40,4 +40,5 @@ async def get_current_user(
         raise HTTPException(status_code=403, detail="User is disabled")
 
     return user
+
 

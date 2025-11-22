@@ -73,3 +73,4 @@ async def get_refresh_token_repository(
     conn = Depends(get_db),
 ) -> RefreshTokenRepository:
     return RefreshTokenRepository(conn=conn, queries=queries)
+

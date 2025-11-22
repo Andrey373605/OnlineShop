@@ -9,7 +9,6 @@ dependencies = [
     "asyncpg>=0.30.0",
     "black>=25.9.0",
     "fastapi>=0.119.1",
-    "passlib[bcrypt]>=1.7.4",
     "python-jose>=3.3.0",
     "pydantic-settings>=2.11.0",
     "pytest>=8.4.2",
@@ -20,4 +19,5 @@ dependencies = [
     "pydantic[email]>=2.12.3",
     "bcrypt>=5.0.0",
     "httpx>=0.28.1",
+    "python-multipart>=0.0.20",
 ]

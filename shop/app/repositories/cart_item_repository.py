@@ -19,11 +19,12 @@ class CartItemRepository:
         return CartItemOut(**row) if row else None
 
     async def get_by_cart_and_product(self, cart_id: int, product_id: int):
-        return await self.queries.get_cart_item_by_cart_and_product(
+        row = await self.queries.get_cart_item_by_cart_and_product(
             self.conn,
             cart_id=cart_id,
             product_id=product_id,
         )
+        return CartItemOut(**row) if row else None
 
     async def create(self, data: dict) -> int:
         result = await self.queries.create_cart_item(self.conn, **data)

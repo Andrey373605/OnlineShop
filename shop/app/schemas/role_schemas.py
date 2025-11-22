@@ -17,5 +17,9 @@ class RoleOut(RoleBase):
     id: int
 
 
+class RoleResponse(BaseModel):
+    id: int
+    message: str
+
 
 

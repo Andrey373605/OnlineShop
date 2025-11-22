@@ -5,7 +5,9 @@ SELECT ci.id,
        ci.cart_id,
        ci.product_id,
        p.title       AS product_title,
-       ci.quantity
+       p.price       AS product_price,
+       ci.quantity,
+       (p.price * ci.quantity) AS line_total
 FROM cart_items ci
 LEFT JOIN products p ON ci.product_id = p.id
 WHERE ci.cart_id = :cart_id

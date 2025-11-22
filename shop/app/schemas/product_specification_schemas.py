@@ -24,5 +24,12 @@ class ProductSpecificationOut(ProductSpecificationBase):
     updated_at: datetime
 
 
+class ProductSpecificationResponse(BaseModel):
+    id: int
+    message: str
+
+
+
+
 
 

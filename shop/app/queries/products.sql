@@ -48,7 +48,7 @@ INSERT INTO products (title, description, price, stock, brand, thumbnail_url, is
 VALUES (:title, :description, :price, :stock, :brand, :thumbnail_url, :is_published, :category_id)
 RETURNING id;
 
--- name: updated-product^
+-- name: update-product^
 UPDATE products
 SET
     title         = COALESCE(:title, title),
@@ -67,3 +67,6 @@ RETURNING id;
 DELETE FROM products
 WHERE id = :id
 RETURNING id;
+
+-- name: check-product-id-exists^
+SELECT EXISTS(SELECT 1 FROM products WHERE id = :id) as exists;
