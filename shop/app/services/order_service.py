@@ -7,9 +7,9 @@ from shop.app.schemas.order_schemas import OrderCreate, OrderOut, OrderUpdate
 
 class OrderService:
     def __init__(
-        self,
-        order_repo: OrderRepository,
-        order_item_repo: OrderItemRepository,
+            self,
+            order_repo: OrderRepository,
+            order_item_repo: OrderItemRepository,
     ):
         self.order_repo = order_repo
         self.order_item_repo = order_item_repo
@@ -71,6 +71,3 @@ class OrderService:
                 detail=detail,
             )
         return order
-
-
-

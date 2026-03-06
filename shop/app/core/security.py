@@ -13,6 +13,7 @@ def hash_password(password: str) -> str:
     hashed = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
     return hashed.decode('utf-8')
 
+
 def verify_password(password: str, hashed_password: str) -> bool:
     password_bytes = password.encode('utf-8')
     hashed_bytes = hashed_password.encode('utf-8')
@@ -20,9 +21,9 @@ def verify_password(password: str, hashed_password: str) -> bool:
 
 
 def _create_token(
-    data: dict[str, Any],
-    expires_delta: timedelta,
-    scope: str,
+        data: dict[str, Any],
+        expires_delta: timedelta,
+        scope: str,
 ) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + expires_delta
@@ -52,4 +53,3 @@ def decode_token(token: str) -> dict[str, Any]:
 
 def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
-

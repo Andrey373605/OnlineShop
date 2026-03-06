@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, APIRouter
 
 from shop.app.api.v1 import (
@@ -15,12 +16,20 @@ from shop.app.api.v1 import (
 )
 from shop.app.core.config import settings
 from shop.app.core.db import get_db_pool, close_db_pool
+from shop.app.services.cache_service import CacheService
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await get_db_pool()
+
+    cache = CacheService()
+    await cache.connect()
+    app.state.cache_service = cache
+
     yield
+
+    await cache.disconnect()
     await close_db_pool()
 
 api_router = APIRouter(prefix="/api/v1")

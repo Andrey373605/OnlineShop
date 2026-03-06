@@ -11,6 +11,7 @@ from shop.app.schemas.auth_schemas import (
     RefreshRequest,
     RefreshResponse,
     RegisterRequest,
+    RegisterResponse,
     TokenPair,
 )
 from shop.app.schemas.user_schemas import UserOut
@@ -22,7 +23,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post(
     "/register",
-    response_model=AuthResponse,
+    response_model=RegisterResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def register_user(
@@ -30,7 +31,7 @@ async def register_user(
     request: Request,
     auth_service: AuthService = Depends(get_auth_service),
     event_log_service: EventLogService = Depends(get_event_log_service),
-) -> AuthResponse:
+) -> RegisterResponse:
     response = await auth_service.register(payload)
     await event_log_service.log_event(
         "AUTH_REGISTER",

@@ -20,7 +20,24 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
-    DEFAULT_USER_ROLE_ID: int = 1
+
+    # Role ID for new registrations (e.g. 2 = "user"). Must exist in roles table.
+    DEFAULT_USER_ROLE_ID: int = 2
+
+    # Redis Settings
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
+    REDIS_PASSWORD: str | None = None
+
+    # Failed login attempts
+    MAX_FAILED_ATTEMPTS: int = 3
+    BLOCK_TIME_MINUTES: int = 10
+
+    # Cache TTL
+    ROLES_CACHE_TTL_SECONDS: int = 500
+
+    SECONDS_IN_MINUTE: int = 60
 
     @property
     def DATABASE_URL(self) -> str:

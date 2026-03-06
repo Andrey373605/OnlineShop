@@ -13,9 +13,9 @@ from shop.app.schemas.product_image_schemas import (
 
 class ProductImageService:
     def __init__(
-        self,
-        image_repo: ProductImageRepository,
-        product_repo: ProductRepository,
+            self,
+            image_repo: ProductImageRepository,
+            product_repo: ProductRepository,
     ):
         self.image_repo = image_repo
         self.product_repo = product_repo
@@ -43,9 +43,9 @@ class ProductImageService:
         return await self.image_repo.get_by_product_id(product_id)
 
     async def update_image(
-        self,
-        image_id: int,
-        data: ProductImageUpdate,
+            self,
+            image_id: int,
+            data: ProductImageUpdate,
     ) -> ProductImageResponse:
         existing_image = await self._get_image_or_404(image_id)
 
@@ -87,8 +87,8 @@ class ProductImageService:
         )
 
     async def delete_images_by_product_id(
-        self,
-        product_id: int,
+            self,
+            product_id: int,
     ) -> ProductImagesDeleteResponse:
         await self._ensure_product_exists(product_id)
         deleted_ids = await self.image_repo.delete_by_product_id(product_id)
@@ -114,6 +114,3 @@ class ProductImageService:
                 status_code=404,
                 detail="Product not found",
             )
-
-
-

@@ -13,16 +13,15 @@ class EventLogService:
         self._logger = logging.getLogger(__name__)
 
     async def log_event(
-        self,
-        event_type: str,
-        *,
-        user_id: int | None = None,
-        description: str | None = None,
-        request: Request | None = None,
-        ip_address: str | None = None,
-        user_agent: str | None = None,
+            self,
+            event_type: str,
+            *,
+            user_id: int | None = None,
+            description: str | None = None,
+            request: Request | None = None,
+            ip_address: str | None = None,
+            user_agent: str | None = None,
     ) -> int | None:
-
 
         if request is not None:
             if request.client:
@@ -48,5 +47,3 @@ class EventLogService:
 
     async def get_event(self, event_id: int) -> EventLogOut | None:
         return await self.repo.get_by_id(event_id)
-
-

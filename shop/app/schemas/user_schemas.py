@@ -15,7 +15,7 @@ class UserBase(BaseModel):
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
-    password_hash: str
+    password: str
     full_name: str
     is_active: bool = True
     role: int
@@ -25,7 +25,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     username: str | None = None
     email: EmailStr | None = None
-    password_hash: str | None = None
+    password: str | None = None
     full_name: str | None = None
     is_active: bool | None = None
     role: int | None = None

@@ -1,4 +1,5 @@
 from fastapi import HTTPException
+
 from shop.app.repositories.product_repository import ProductRepository
 from shop.app.schemas.product_schemas import ProductCreate, ProductUpdate, ProductOut, ProductResponse
 from shop.app.services.category_service import CategoryService
@@ -58,5 +59,3 @@ class ProductService:
 
     async def _product_id_exists(self, product_id: int) -> bool:
         return await self.product_repo.exists_product_with_id(product_id)
-
-

@@ -14,16 +14,16 @@ from shop.app.schemas.product_specification_schemas import (
 
 class ProductSpecificationService:
     def __init__(
-        self,
-        specification_repo: ProductSpecificationRepository,
-        product_repo: ProductRepository,
+            self,
+            specification_repo: ProductSpecificationRepository,
+            product_repo: ProductRepository,
     ):
         self.specification_repo = specification_repo
         self.product_repo = product_repo
 
     async def create_specification(
-        self,
-        data: ProductSpecificationCreate,
+            self,
+            data: ProductSpecificationCreate,
     ) -> ProductSpecificationResponse:
         await self._ensure_product_exists(data.product_id)
 
@@ -50,14 +50,14 @@ class ProductSpecificationService:
         return await self.specification_repo.get_all()
 
     async def get_specification_by_id(
-        self,
-        specification_id: int,
+            self,
+            specification_id: int,
     ) -> ProductSpecificationOut:
         return await self._get_specification_or_404(specification_id)
 
     async def get_specification_by_product_id(
-        self,
-        product_id: int,
+            self,
+            product_id: int,
     ) -> ProductSpecificationOut:
         specification = await self.specification_repo.get_by_product_id(product_id)
         if not specification:
@@ -68,9 +68,9 @@ class ProductSpecificationService:
         return specification
 
     async def update_specification(
-        self,
-        specification_id: int,
-        data: ProductSpecificationUpdate,
+            self,
+            specification_id: int,
+            data: ProductSpecificationUpdate,
     ) -> ProductSpecificationResponse:
         await self._get_specification_or_404(specification_id)
 
@@ -97,8 +97,8 @@ class ProductSpecificationService:
         )
 
     async def delete_specification(
-        self,
-        specification_id: int,
+            self,
+            specification_id: int,
     ) -> ProductSpecificationResponse:
         await self._get_specification_or_404(specification_id)
 
@@ -115,8 +115,8 @@ class ProductSpecificationService:
         )
 
     async def _get_specification_or_404(
-        self,
-        specification_id: int,
+            self,
+            specification_id: int,
     ) -> ProductSpecificationOut:
         specification = await self.specification_repo.get_by_id(specification_id)
         if not specification:
@@ -133,6 +133,3 @@ class ProductSpecificationService:
                 status_code=404,
                 detail="Product not found",
             )
-
-
-

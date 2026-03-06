@@ -32,7 +32,7 @@ class CategoryService:
         return categories
 
     async def update_category(self, category_id: int, data: CategoryUpdate) -> CategoryResponse:
-        check_exist = await self._category_id_exists(category_id)
+        check_exist = await self.category_id_exists(category_id)
         if not check_exist:
             raise HTTPException(status_code=404, detail="Category not found")
 
@@ -44,7 +44,7 @@ class CategoryService:
         return CategoryResponse(id=category_id, message="Category updated successfully")
 
     async def delete_category(self, category_id: int) -> CategoryResponse:
-        check_exist = await self._category_id_exists(category_id)
+        check_exist = await self.category_id_exists(category_id)
         if not check_exist:
             raise HTTPException(status_code=404, detail="Category not found")
 

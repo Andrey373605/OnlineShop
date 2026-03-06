@@ -35,7 +35,9 @@ from shop.app.services.product_service import ProductService
 from shop.app.services.product_specification_service import (
     ProductSpecificationService,
 )
+from shop.app.dependencies.cache import get_cache_service
 from shop.app.services.auth_service import AuthService
+from shop.app.services.cache_service import CacheService
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.review_service import ReviewService
 from shop.app.services.role_service import RoleService
@@ -81,8 +83,15 @@ async def get_product_specification_service(
 async def get_auth_service(
     user_repo: UserRepository = Depends(get_user_repository),
     refresh_repo: RefreshTokenRepository = Depends(get_refresh_token_repository),
+    role_repo: RoleRepository = Depends(get_role_repository),
+    cache: CacheService = Depends(get_cache_service),
 ) -> AuthService:
-    return AuthService(user_repo=user_repo, refresh_repo=refresh_repo)
+    return AuthService(
+        user_repo=user_repo,
+        refresh_repo=refresh_repo,
+        role_repo=role_repo,
+        cache=cache,
+    )
 
 
 async def get_cart_service(
@@ -99,8 +108,9 @@ async def get_cart_service(
 
 async def get_role_service(
     role_repo: RoleRepository = Depends(get_role_repository),
+    cache: CacheService = Depends(get_cache_service)
 ) -> RoleService:
-    return RoleService(role_repo)
+    return RoleService(role_repo, cache)
 
 
 async def get_user_service(
@@ -135,3 +145,5 @@ async def get_event_log_service(
     event_repo: EventLogRepository = Depends(get_event_log_repository),
 ) -> EventLogService:
     return EventLogService(repo=event_repo)
+
+

@@ -1,6 +1,14 @@
 from pydantic import BaseModel, EmailStr
 
-from shop.app.schemas.user_schemas import UserOut
+
+class AuthUserOut(BaseModel):
+    """Minimal user info for auth responses (register/login)."""
+    id: int
+    username: str
+    email: EmailStr
+    full_name: str
+    role_id: int
+    role_name: str | None = None
 
 
 class RegisterRequest(BaseModel):
@@ -8,6 +16,12 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     full_name: str
+
+
+class RegisterResponse(BaseModel):
+    """Response for registration — no tokens, user must log in."""
+    message: str = "Registration successful"
+    user: AuthUserOut
 
 
 class LoginRequest(BaseModel):
@@ -24,7 +38,7 @@ class TokenPair(BaseModel):
 
 
 class AuthResponse(BaseModel):
-    user: UserOut
+    user: AuthUserOut
     tokens: TokenPair
 
 

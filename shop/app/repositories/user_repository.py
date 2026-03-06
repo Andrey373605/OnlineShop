@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from pydantic import EmailStr
+
 from shop.app.schemas.user_schemas import UserDB, UserOut
 
 
@@ -62,7 +64,7 @@ class UserRepository:
         )
         return row["exists"]
 
-    async def exists_with_email(self, email: str) -> bool:
+    async def exists_with_email(self, email: EmailStr) -> bool:
         row = await self.queries.check_user_email_exists(
             self.conn,
             email=email,

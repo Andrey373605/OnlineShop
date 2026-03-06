@@ -7,9 +7,9 @@ from shop.app.schemas.review_schemas import ReviewCreate, ReviewOut, ReviewUpdat
 
 class ReviewService:
     def __init__(
-        self,
-        review_repo: ReviewRepository,
-        product_repo: ProductRepository,
+            self,
+            review_repo: ReviewRepository,
+            product_repo: ProductRepository,
     ) -> None:
         self.review_repo = review_repo
         self.product_repo = product_repo
@@ -21,9 +21,9 @@ class ReviewService:
         return await self._get_review_or_404(review_id)
 
     async def create_review(
-        self,
-        user_id: int,
-        data: ReviewCreate,
+            self,
+            user_id: int,
+            data: ReviewCreate,
     ) -> ReviewOut:
         self._validate_rating_value(data.rating)
         await self._ensure_product_exists(data.product_id)
@@ -43,11 +43,11 @@ class ReviewService:
         return await self._get_review_or_404(review_id)
 
     async def update_review(
-        self,
-        review_id: int,
-        user_id: int,
-        data: ReviewUpdate,
-        is_admin: bool = False,
+            self,
+            review_id: int,
+            user_id: int,
+            data: ReviewUpdate,
+            is_admin: bool = False,
     ) -> ReviewOut:
         review = await self._get_review_or_404(review_id)
         self._ensure_author_or_admin(review.user_id, user_id, is_admin)
@@ -67,10 +67,10 @@ class ReviewService:
         return await self._get_review_or_404(review_id)
 
     async def delete_review(
-        self,
-        review_id: int,
-        user_id: int,
-        is_admin: bool = False,
+            self,
+            review_id: int,
+            user_id: int,
+            is_admin: bool = False,
     ) -> None:
         review = await self._get_review_or_404(review_id)
         self._ensure_author_or_admin(review.user_id, user_id, is_admin)
@@ -101,9 +101,9 @@ class ReviewService:
 
     @staticmethod
     def _ensure_author_or_admin(
-        review_user_id: int,
-        current_user_id: int,
-        is_admin: bool,
+            review_user_id: int,
+            current_user_id: int,
+            is_admin: bool,
     ) -> None:
         if not (is_admin or review_user_id == current_user_id):
             raise HTTPException(
@@ -118,5 +118,3 @@ class ReviewService:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Rating must be between 1 and 5",
             )
-
-

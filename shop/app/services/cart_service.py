@@ -12,10 +12,10 @@ from shop.app.schemas.product_schemas import ProductOut
 
 class CartService:
     def __init__(
-        self,
-        cart_repo: CartRepository,
-        cart_item_repo: CartItemRepository,
-        product_repo: ProductRepository,
+            self,
+            cart_repo: CartRepository,
+            cart_item_repo: CartItemRepository,
+            product_repo: ProductRepository,
     ):
         self.cart_repo = cart_repo
         self.cart_item_repo = cart_item_repo
@@ -55,10 +55,10 @@ class CartService:
         return await self._build_cart_response(cart)
 
     async def update_item_quantity(
-        self,
-        user_id: int,
-        item_id: int,
-        data: CartItemQuantityUpdate,
+            self,
+            user_id: int,
+            item_id: int,
+            data: CartItemQuantityUpdate,
     ) -> CartWithItems:
         cart = await self._ensure_cart(user_id)
         cart_item = await self._get_cart_item_or_404(item_id, cart.id)
@@ -130,9 +130,9 @@ class CartService:
         return product
 
     async def _get_cart_item_or_404(
-        self,
-        item_id: int,
-        cart_id: int,
+            self,
+            item_id: int,
+            cart_id: int,
     ) -> CartItemOut:
         cart_item = await self.cart_item_repo.get_by_id(item_id)
         if not cart_item or cart_item.cart_id != cart_id:
@@ -154,4 +154,3 @@ class CartService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Requested quantity exceeds available stock",
             )
-

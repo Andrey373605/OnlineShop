@@ -14,10 +14,10 @@ from shop.app.schemas.product_schemas import ProductOut
 
 class OrderItemService:
     def __init__(
-        self,
-        order_repo: OrderRepository,
-        order_item_repo: OrderItemRepository,
-        product_repo: ProductRepository,
+            self,
+            order_repo: OrderRepository,
+            order_item_repo: OrderItemRepository,
+            product_repo: ProductRepository,
     ):
         self.order_repo = order_repo
         self.order_item_repo = order_item_repo
@@ -37,9 +37,9 @@ class OrderItemService:
         return item
 
     async def create_order_item(
-        self,
-        order_id: int,
-        data: OrderItemCreate,
+            self,
+            order_id: int,
+            data: OrderItemCreate,
     ) -> OrderItemOut:
         self._validate_order_item_request(order_id, data.order_id)
         await self._get_order_or_404(order_id)
@@ -52,10 +52,10 @@ class OrderItemService:
         return await self._get_item_or_500(item_id, detail="Unable to fetch created order item")
 
     async def update_order_item(
-        self,
-        order_id: int,
-        item_id: int,
-        data: OrderItemUpdate,
+            self,
+            order_id: int,
+            item_id: int,
+            data: OrderItemUpdate,
     ) -> OrderItemOut:
         item = await self.get_order_item(order_id, item_id)
 
@@ -128,14 +128,11 @@ class OrderItemService:
 
     @staticmethod
     def _validate_order_item_request(
-        path_order_id: int,
-        body_order_id: int | None,
+            path_order_id: int,
+            body_order_id: int | None,
     ) -> None:
         if body_order_id is not None and body_order_id != path_order_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="order_id mismatch between path and body",
             )
-
-
-

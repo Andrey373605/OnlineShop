@@ -1,12 +1,12 @@
 from fastapi import HTTPException, status
 
+from shop.app.core.security import hash_password
 from shop.app.repositories.user_repository import UserRepository
 from shop.app.schemas.user_schemas import (
     UserCreate,
     UserOut,
     UserUpdate,
 )
-from shop.app.core.security import hash_password
 
 
 class UserService:
@@ -38,10 +38,8 @@ class UserService:
                 detail="Email already exists",
             )
 
-        user_data = payload.model_dump()
-
-        # Hash password before saving
-        user_data["password_hash"] = hash_password(payload.password_hash)
+        user_data = payload.model_dump(exclude={"password"})
+        user_data["password_hash"] = hash_password(payload.password)
 
         user_id = await self.user_repo.create(user_data)
         user = await self.user_repo.get_by_id(user_id)
@@ -58,8 +56,9 @@ class UserService:
 
         update_data = payload.model_dump(exclude_unset=True)
 
-        if "password_hash" in update_data and update_data["password_hash"]:
-            update_data["password_hash"] = hash_password(update_data["password_hash"])
+        if "password" in update_data and update_data["password"]:
+            update_data["password_hash"] = hash_password(update_data["password"])
+            del update_data["password"]
 
         updated = await self.user_repo.update(user_id, update_data)
         if not updated:
@@ -86,5 +85,3 @@ class UserService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to delete user",
             )
-
-
