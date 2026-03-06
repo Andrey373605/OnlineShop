@@ -41,7 +41,6 @@ class RoleService:
 
     async def get_all_roles(self) -> list[RoleOut]:
         if await self.cache.exists(ROLES_CACHE_KEY):
-            print("Cache")
             roles_str = await self.cache.get_list(ROLES_CACHE_KEY)
             return [RoleOut.model_validate_json(s) for s in roles_str]
 
@@ -49,7 +48,6 @@ class RoleService:
         roles_str = [r.model_dump_json() for r in roles]
         ttl = settings.ROLES_CACHE_TTL_SECONDS or None
         await self.cache.set_list_atomic(ROLES_CACHE_KEY, roles_str, ttl_seconds=ttl)
-        print("DB")
         return roles
 
     async def update_role(self, role_id: int, data: RoleUpdate) -> RoleResponse:
