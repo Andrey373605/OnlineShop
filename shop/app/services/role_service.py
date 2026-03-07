@@ -1,6 +1,5 @@
 from fastapi import HTTPException
 
-from shop.app.core.config import settings
 from shop.app.repositories.role_repository import RoleRepository
 from shop.app.services.cache_service import CacheService
 from shop.app.schemas.role_schemas import (
@@ -15,12 +14,14 @@ ROLES_CACHE_KEY = "roles:all"
 
 class RoleService:
     def __init__(
-            self,
-            role_repo: RoleRepository,
-            cache: CacheService
+        self,
+        role_repo: RoleRepository,
+        cache: CacheService,
+        cache_ttl_seconds: int | None = None,
     ):
         self.role_repo = role_repo
         self.cache = cache
+        self._cache_ttl_seconds = cache_ttl_seconds
 
     async def create_role(self, data: RoleCreate) -> RoleResponse:
         if await self.role_repo.exists_with_name(data.name):
@@ -46,8 +47,9 @@ class RoleService:
 
         roles = await self.role_repo.get_all()
         roles_str = [r.model_dump_json() for r in roles]
-        ttl = settings.ROLES_CACHE_TTL_SECONDS or None
-        await self.cache.set_list_atomic(ROLES_CACHE_KEY, roles_str, ttl_seconds=ttl)
+        await self.cache.set_list_atomic(
+            ROLES_CACHE_KEY, roles_str, ttl_seconds=self._cache_ttl_seconds
+        )
         return roles
 
     async def update_role(self, role_id: int, data: RoleUpdate) -> RoleResponse:

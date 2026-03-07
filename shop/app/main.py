@@ -16,14 +16,16 @@ from shop.app.api.v1 import (
 )
 from shop.app.core.config import settings
 from shop.app.core.db import get_db_pool, close_db_pool
-from shop.app.services.cache_service import CacheService
+from shop.app.services.cache_service import CacheService, CacheServiceConfig
+
+APP_VERSION = "1.0.0"
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await get_db_pool()
 
-    cache = CacheService()
+    cache = CacheService(CacheServiceConfig.from_settings(settings))
     await cache.connect()
     app.state.cache_service = cache
 
@@ -49,18 +51,18 @@ api_router.include_router(reviews.router)
 app = FastAPI(
     title="Products API with Service Layer and aiosql",
     description="API для управления продуктами и категориями",
-    version="1.0.0",
+    version=APP_VERSION,
     debug=settings.DEBUG,
     lifespan=lifespan
 )
 app.include_router(api_router)
 
-# Health check endpoint
+
 @app.get("/")
 async def root():
     return {
         "message": "Products API",
-        "version": "1.0.0",
+        "version": APP_VERSION,
         "docs": "/docs"
     }
 

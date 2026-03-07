@@ -1,4 +1,6 @@
 from fastapi import Depends
+
+from shop.app.core.config import settings
 from shop.app.dependencies.repositories import (
     get_cart_item_repository,
     get_cart_repository,
@@ -49,13 +51,17 @@ from shop.app.services.order_item_service import OrderItemService
 async def get_category_service(
     category_repo: CategoryRepository = Depends(get_category_repository)
 ) -> CategoryService:
-    return CategoryService(category_repo)
+    return CategoryService(category_repo=category_repo)
+
 
 async def get_product_service(
     product_repo: ProductRepository = Depends(get_product_repository),
     category_service: CategoryService = Depends(get_category_service)
 ) -> ProductService:
-    return ProductService(product_repo, category_service)
+    return ProductService(
+        product_repo=product_repo,
+        category_service=category_service,
+    )
 
 
 async def get_product_image_service(
@@ -108,22 +114,34 @@ async def get_cart_service(
 
 async def get_role_service(
     role_repo: RoleRepository = Depends(get_role_repository),
-    cache: CacheService = Depends(get_cache_service)
+    cache: CacheService = Depends(get_cache_service),
 ) -> RoleService:
-    return RoleService(role_repo, cache)
+    return RoleService(
+        role_repo=role_repo,
+        cache=cache,
+        cache_ttl_seconds=settings.ROLES_CACHE_TTL_SECONDS or None,
+    )
 
 
 async def get_user_service(
     user_repo: UserRepository = Depends(get_user_repository),
+    cache: CacheService = Depends(get_cache_service),
 ) -> UserService:
-    return UserService(user_repo)
+    return UserService(
+        user_repo=user_repo,
+        cache=cache,
+        cache_ttl_seconds=settings.USERS_CACHE_TTL_SECONDS or None,
+    )
 
 
 async def get_order_service(
     order_repo: OrderRepository = Depends(get_order_repository),
     order_item_repo: OrderItemRepository = Depends(get_order_item_repository),
 ) -> OrderService:
-    return OrderService(order_repo, order_item_repo)
+    return OrderService(
+        order_repo=order_repo,
+        order_item_repo=order_item_repo,
+    )
 
 
 async def get_order_item_service(
@@ -131,7 +149,11 @@ async def get_order_item_service(
     order_item_repo: OrderItemRepository = Depends(get_order_item_repository),
     product_repo: ProductRepository = Depends(get_product_repository),
 ) -> OrderItemService:
-    return OrderItemService(order_repo, order_item_repo, product_repo)
+    return OrderItemService(
+        order_repo=order_repo,
+        order_item_repo=order_item_repo,
+        product_repo=product_repo,
+    )
 
 
 async def get_review_service(

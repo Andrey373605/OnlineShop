@@ -7,11 +7,19 @@ from shop.app.schemas.user_schemas import (
     UserOut,
     UserUpdate,
 )
+from shop.app.services.cache_service import CacheService
 
 
 class UserService:
-    def __init__(self, user_repo: UserRepository):
+    def __init__(
+        self,
+        user_repo: UserRepository,
+        cache: CacheService,
+        cache_ttl_seconds: int | None = None,
+    ):
         self.user_repo = user_repo
+        self.cache = cache
+        self._cache_ttl_seconds = cache_ttl_seconds
 
     async def get_user_by_id(self, user_id: int) -> UserOut:
         user = await self.user_repo.get_by_id(user_id)
@@ -23,7 +31,16 @@ class UserService:
         return user
 
     async def list_users(self, limit: int, offset: int) -> list[UserOut]:
-        return await self.user_repo.get_all(limit=limit, offset=offset)
+        key = f"users:limit:{limit}:offset:{offset}"
+
+        if await self.cache.exists(key):
+            roles_str = await self.cache.get_list(key)
+            return [UserOut.model_validate_json(s) for s in roles_str]
+
+        users = await self.user_repo.get_all(limit=limit, offset=offset)
+        users_str = [u.model_dump_json() for u in users]
+        await self.cache.set_list_atomic(key, users_str, ttl_seconds=self._cache_ttl_seconds)
+        return users
 
     async def create_user(self, payload: UserCreate) -> UserOut:
         if await self.user_repo.exists_with_username(payload.username):

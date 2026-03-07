@@ -1,19 +1,43 @@
 import json
+from dataclasses import dataclass
 from typing import List
 
 from redis.asyncio import Redis
 
-from shop.app.core.config import settings
+from shop.app.core.config import Settings
+
+
+@dataclass(frozen=True)
+class CacheServiceConfig:
+    redis_host: str
+    redis_port: int
+    redis_db: int
+    redis_password: str | None
+    block_time_minutes: int
+    seconds_in_minute: int
+
+    @classmethod
+    def from_settings(cls, settings: Settings) -> "CacheServiceConfig":
+        return cls(
+            redis_host=settings.REDIS_HOST,
+            redis_port=settings.REDIS_PORT,
+            redis_db=settings.REDIS_DB,
+            redis_password=settings.REDIS_PASSWORD,
+            block_time_minutes=settings.BLOCK_TIME_MINUTES,
+            seconds_in_minute=settings.SECONDS_IN_MINUTE,
+        )
+
 
 class CacheService:
-    def __init__(self):
+    def __init__(self, config: CacheServiceConfig):
+        self._config = config
         self.redis_client: Redis | None = None
 
     async def connect(self) -> None:
         self.redis_client = Redis.from_url(
-            f'redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}',
-            password=settings.REDIS_PASSWORD,
-            db=settings.REDIS_DB,
+            f'redis://{self._config.redis_host}:{self._config.redis_port}',
+            password=self._config.redis_password,
+            db=self._config.redis_db,
             decode_responses=True,
         )
 
@@ -61,12 +85,13 @@ class CacheService:
     async def add_to_blocklist(self, username: str, ttl_minutes: int) -> None:
         self._ensure_connected()
         key = f"blacklist:{username}"
+        ttl_seconds = ttl_minutes * self._config.seconds_in_minute
         await self.redis_client.setex(
             key,
-            ttl_minutes * settings.SECONDS_IN_MINUTE,
+            ttl_seconds,
             json.dumps({
                 'username': username,
-                'blocked_until': ttl_minutes * settings.SECONDS_IN_MINUTE,
+                'blocked_until': ttl_seconds,
                 'reason': 'Too many failed attempts'
             })
         )
@@ -82,7 +107,10 @@ class CacheService:
 
         attempts = await self.redis_client.incr(key)
         if attempts == 1:
-            await self.redis_client.expire(key, settings.BLOCK_TIME_MINUTES * settings.SECONDS_IN_MINUTE)
+            await self.redis_client.expire(
+                key,
+                self._config.block_time_minutes * self._config.seconds_in_minute
+            )
 
         return attempts
 

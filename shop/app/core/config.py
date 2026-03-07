@@ -35,7 +35,8 @@ class Settings(BaseSettings):
     BLOCK_TIME_MINUTES: int = 10
 
     # Cache TTL
-    ROLES_CACHE_TTL_SECONDS: int = 500
+    ROLES_CACHE_TTL_SECONDS: int = 300
+    USERS_CACHE_TTL_SECONDS: int = 120
 
     SECONDS_IN_MINUTE: int = 60
 

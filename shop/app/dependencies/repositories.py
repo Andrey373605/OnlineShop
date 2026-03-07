@@ -1,3 +1,4 @@
+import asyncpg
 from fastapi import Depends
 
 from shop.app.core.db import get_db, queries
@@ -18,59 +19,79 @@ from shop.app.repositories.event_log_repository import EventLogRepository
 from shop.app.repositories.refresh_token_repository import RefreshTokenRepository
 
 
-async def get_category_repository(conn = Depends(get_db)) -> CategoryRepository:
+async def get_category_repository(
+    conn: asyncpg.Connection = Depends(get_db),
+) -> CategoryRepository:
     return CategoryRepository(conn=conn, queries=queries)
 
-async def get_product_repository(conn = Depends(get_db)) -> ProductRepository:
+async def get_product_repository(
+    conn: asyncpg.Connection = Depends(get_db),
+) -> ProductRepository:
     return ProductRepository(conn=conn, queries=queries)
 
 
-async def get_user_repository(conn = Depends(get_db)) -> UserRepository:
+async def get_user_repository(
+    conn: asyncpg.Connection = Depends(get_db),
+) -> UserRepository:
     return UserRepository(conn=conn, queries=queries)
 
 
-async def get_role_repository(conn = Depends(get_db)) -> RoleRepository:
+async def get_role_repository(
+    conn: asyncpg.Connection = Depends(get_db),
+) -> RoleRepository:
     return RoleRepository(conn=conn, queries=queries)
 
 
 async def get_product_specification_repository(
-    conn = Depends(get_db),
+    conn: asyncpg.Connection = Depends(get_db),
 ) -> ProductSpecificationRepository:
     return ProductSpecificationRepository(conn=conn, queries=queries)
 
 
 async def get_product_image_repository(
-    conn = Depends(get_db),
+    conn: asyncpg.Connection = Depends(get_db),
 ) -> ProductImageRepository:
     return ProductImageRepository(conn=conn, queries=queries)
 
 
-async def get_cart_repository(conn = Depends(get_db)) -> CartRepository:
+async def get_cart_repository(
+    conn: asyncpg.Connection = Depends(get_db),
+) -> CartRepository:
     return CartRepository(conn=conn, queries=queries)
 
 
-async def get_cart_item_repository(conn = Depends(get_db)) -> CartItemRepository:
+async def get_cart_item_repository(
+    conn: asyncpg.Connection = Depends(get_db),
+) -> CartItemRepository:
     return CartItemRepository(conn=conn, queries=queries)
 
 
-async def get_review_repository(conn = Depends(get_db)) -> ReviewRepository:
+async def get_review_repository(
+    conn: asyncpg.Connection = Depends(get_db),
+) -> ReviewRepository:
     return ReviewRepository(conn=conn, queries=queries)
 
 
-async def get_order_repository(conn = Depends(get_db)) -> OrderRepository:
+async def get_order_repository(
+    conn: asyncpg.Connection = Depends(get_db),
+) -> OrderRepository:
     return OrderRepository(conn=conn, queries=queries)
 
 
-async def get_order_item_repository(conn = Depends(get_db)) -> OrderItemRepository:
+async def get_order_item_repository(
+    conn: asyncpg.Connection = Depends(get_db),
+) -> OrderItemRepository:
     return OrderItemRepository(conn=conn, queries=queries)
 
 
-async def get_event_log_repository(conn = Depends(get_db)) -> EventLogRepository:
+async def get_event_log_repository(
+    conn: asyncpg.Connection = Depends(get_db),
+) -> EventLogRepository:
     return EventLogRepository(conn=conn, queries=queries)
 
 
 async def get_refresh_token_repository(
-    conn = Depends(get_db),
+    conn: asyncpg.Connection = Depends(get_db),
 ) -> RefreshTokenRepository:
     return RefreshTokenRepository(conn=conn, queries=queries)
 
