@@ -90,6 +90,7 @@ class UserService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Unable to fetch updated user",
             )
+        await self.cache.delete_user_session(user_id)
         return user
 
     async def delete_user(self, user_id: int) -> None:
@@ -102,3 +103,4 @@ class UserService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to delete user",
             )
+        await self.cache.delete_user_session(user_id)

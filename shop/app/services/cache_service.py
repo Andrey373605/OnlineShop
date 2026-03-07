@@ -90,6 +90,25 @@ class CacheService:
         else:
             await self.redis_client.set(key, value)
 
+    def _user_session_key(self, user_id: int) -> str:
+        return f"session:user:{user_id}"
+
+    async def get_user_session(self, user_id: int) -> str | None:
+        """Получить закэшированные сессионные данные пользователя (JSON)."""
+        return await self.get_value(self._user_session_key(user_id))
+
+    async def set_user_session(
+        self, user_id: int, value: str, ttl_seconds: int
+    ) -> None:
+        """Сохранить сессионные данные пользователя (JSON) с TTL."""
+        await self.set_value(
+            self._user_session_key(user_id), value, ttl_seconds=ttl_seconds
+        )
+
+    async def delete_user_session(self, user_id: int) -> None:
+        """Удалить кэш сессии пользователя (инвалидация при обновлении/удалении)."""
+        await self.delete(self._user_session_key(user_id))
+
     async def disconnect(self) -> None:
         if self.redis_client:
             await self.redis_client.aclose()

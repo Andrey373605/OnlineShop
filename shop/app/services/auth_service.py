@@ -61,6 +61,11 @@ class AuthService:
 
         safe_user = await self._reload_user(user.id)
         tokens = await self._issue_tokens(safe_user)
+        await self.cache.set_user_session(
+            safe_user.id,
+            safe_user.model_dump_json(),
+            settings.USER_SESSION_CACHE_TTL_SECONDS,
+        )
         return AuthResponse(user=self._to_auth_user(safe_user), tokens=tokens)
 
     async def refresh(self, payload: RefreshRequest) -> RefreshResponse:
@@ -73,6 +78,11 @@ class AuthService:
         await self.refresh_repo.delete(stored_token.id)
 
         tokens = await self._issue_tokens(user)
+        await self.cache.set_user_session(
+            user.id,
+            user.model_dump_json(),
+            settings.USER_SESSION_CACHE_TTL_SECONDS,
+        )
         return RefreshResponse(**tokens.model_dump())
 
     async def logout(self, payload: LogoutRequest) -> None:
