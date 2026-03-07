@@ -2,21 +2,21 @@ import asyncpg
 from fastapi import Depends
 
 from shop.app.core.db import get_db, queries
+from shop.app.repositories.cart_item_repository import CartItemRepository
+from shop.app.repositories.cart_repository import CartRepository
 from shop.app.repositories.category_repository import CategoryRepository
+from shop.app.repositories.event_log_repository import EventLogRepository
+from shop.app.repositories.order_item_repository import OrderItemRepository
+from shop.app.repositories.order_repository import OrderRepository
+from shop.app.repositories.product_image_repository import ProductImageRepository
 from shop.app.repositories.product_repository import ProductRepository
-from shop.app.repositories.user_repository import UserRepository
-from shop.app.repositories.role_repository import RoleRepository
 from shop.app.repositories.product_specification_repository import (
     ProductSpecificationRepository,
 )
-from shop.app.repositories.product_image_repository import ProductImageRepository
-from shop.app.repositories.cart_repository import CartRepository
-from shop.app.repositories.cart_item_repository import CartItemRepository
-from shop.app.repositories.review_repository import ReviewRepository
-from shop.app.repositories.order_repository import OrderRepository
-from shop.app.repositories.order_item_repository import OrderItemRepository
-from shop.app.repositories.event_log_repository import EventLogRepository
 from shop.app.repositories.refresh_token_repository import RefreshTokenRepository
+from shop.app.repositories.review_repository import ReviewRepository
+from shop.app.repositories.role_repository import RoleRepository
+from shop.app.repositories.user_repository import UserRepository
 
 
 async def get_category_repository(

@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 
 from shop.app.api.v1 import (
+    analytics,
     auth,
     cart,
     categories,
@@ -37,6 +38,7 @@ async def lifespan(app: FastAPI):
 api_router = APIRouter(prefix="/api/v1")
 
 api_router.include_router(auth.router)
+api_router.include_router(analytics.router)
 api_router.include_router(categories.router)
 api_router.include_router(products.router)
 api_router.include_router(cart.router)

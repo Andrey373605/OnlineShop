@@ -1,5 +1,5 @@
-from pydantic_settings import BaseSettings
 from pydantic import ConfigDict
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     # Cache TTL
     ROLES_CACHE_TTL_SECONDS: int = 300
     USERS_CACHE_TTL_SECONDS: int = 120
+    CATEGORIES_CACHE_TTL_SECONDS: int = 300
+    PRODUCTS_CACHE_TTL_SECONDS: int = 120
+    ANALYTICS_CACHE_TTL_SECONDS: int = 60
 
     SECONDS_IN_MINUTE: int = 60
 

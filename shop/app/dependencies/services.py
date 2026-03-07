@@ -1,10 +1,12 @@
 from fastapi import Depends
 
 from shop.app.core.config import settings
+from shop.app.dependencies.cache import get_cache_service
 from shop.app.dependencies.repositories import (
     get_cart_item_repository,
     get_cart_repository,
     get_category_repository,
+    get_event_log_repository,
     get_order_item_repository,
     get_order_repository,
     get_product_image_repository,
@@ -13,12 +15,14 @@ from shop.app.dependencies.repositories import (
     get_refresh_token_repository,
     get_review_repository,
     get_role_repository,
-    get_user_repository, get_event_log_repository,
+    get_user_repository,
 )
 from shop.app.repositories.cart_item_repository import CartItemRepository
 from shop.app.repositories.cart_repository import CartRepository
 from shop.app.repositories.category_repository import CategoryRepository
 from shop.app.repositories.event_log_repository import EventLogRepository
+from shop.app.repositories.order_item_repository import OrderItemRepository
+from shop.app.repositories.order_repository import OrderRepository
 from shop.app.repositories.product_image_repository import ProductImageRepository
 from shop.app.repositories.product_repository import ProductRepository
 from shop.app.repositories.product_specification_repository import (
@@ -28,39 +32,45 @@ from shop.app.repositories.refresh_token_repository import RefreshTokenRepositor
 from shop.app.repositories.review_repository import ReviewRepository
 from shop.app.repositories.role_repository import RoleRepository
 from shop.app.repositories.user_repository import UserRepository
-from shop.app.repositories.order_repository import OrderRepository
-from shop.app.repositories.order_item_repository import OrderItemRepository
+from shop.app.services.analytics_service import AnalyticsService
+from shop.app.services.auth_service import AuthService
+from shop.app.services.cache_service import CacheService
 from shop.app.services.cart_service import CartService
 from shop.app.services.category_service import CategoryService
+from shop.app.services.event_log_service import EventLogService
+from shop.app.services.order_item_service import OrderItemService
+from shop.app.services.order_service import OrderService
 from shop.app.services.product_image_service import ProductImageService
 from shop.app.services.product_service import ProductService
 from shop.app.services.product_specification_service import (
     ProductSpecificationService,
 )
-from shop.app.dependencies.cache import get_cache_service
-from shop.app.services.auth_service import AuthService
-from shop.app.services.cache_service import CacheService
-from shop.app.services.event_log_service import EventLogService
 from shop.app.services.review_service import ReviewService
 from shop.app.services.role_service import RoleService
 from shop.app.services.user_service import UserService
-from shop.app.services.order_service import OrderService
-from shop.app.services.order_item_service import OrderItemService
 
 
 async def get_category_service(
-    category_repo: CategoryRepository = Depends(get_category_repository)
+    category_repo: CategoryRepository = Depends(get_category_repository),
+    cache: CacheService = Depends(get_cache_service),
 ) -> CategoryService:
-    return CategoryService(category_repo=category_repo)
+    return CategoryService(
+        category_repo=category_repo,
+        cache=cache,
+        cache_ttl_seconds=settings.CATEGORIES_CACHE_TTL_SECONDS or None,
+    )
 
 
 async def get_product_service(
     product_repo: ProductRepository = Depends(get_product_repository),
-    category_service: CategoryService = Depends(get_category_service)
+    category_service: CategoryService = Depends(get_category_service),
+    cache: CacheService = Depends(get_cache_service),
 ) -> ProductService:
     return ProductService(
         product_repo=product_repo,
         category_service=category_service,
+        cache=cache,
+        cache_ttl_seconds=settings.PRODUCTS_CACHE_TTL_SECONDS or None,
     )
 
 
@@ -167,5 +177,20 @@ async def get_event_log_service(
     event_repo: EventLogRepository = Depends(get_event_log_repository),
 ) -> EventLogService:
     return EventLogService(repo=event_repo)
+
+
+async def get_analytics_service(
+    order_repo: OrderRepository = Depends(get_order_repository),
+    user_repo: UserRepository = Depends(get_user_repository),
+    product_repo: ProductRepository = Depends(get_product_repository),
+    cache: CacheService = Depends(get_cache_service),
+) -> AnalyticsService:
+    return AnalyticsService(
+        order_repo=order_repo,
+        user_repo=user_repo,
+        product_repo=product_repo,
+        cache=cache,
+        cache_ttl_seconds=settings.ANALYTICS_CACHE_TTL_SECONDS,
+    )
 
 

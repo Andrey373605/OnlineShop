@@ -1,5 +1,5 @@
-import json
 from dataclasses import dataclass
+import json
 from typing import List
 
 from redis.asyncio import Redis
@@ -72,6 +72,23 @@ class CacheService:
                     pipe.expire(key, ttl_seconds)
             await pipe.execute()
 
+    async def get_value(self, key: str) -> str | None:
+        """Получить строковое значение по ключу (для JSON и др.)."""
+        self._ensure_connected()
+        return await self.redis_client.get(key)
+
+    async def set_value(
+        self,
+        key: str,
+        value: str,
+        ttl_seconds: int | None = None,
+    ) -> None:
+        """Сохранить строковое значение с опциональным TTL (для кэша аналитики и др.)."""
+        self._ensure_connected()
+        if ttl_seconds is not None:
+            await self.redis_client.setex(key, ttl_seconds, value)
+        else:
+            await self.redis_client.set(key, value)
 
     async def disconnect(self) -> None:
         if self.redis_client:

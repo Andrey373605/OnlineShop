@@ -1,13 +1,13 @@
 from fastapi import HTTPException
 
 from shop.app.repositories.role_repository import RoleRepository
-from shop.app.services.cache_service import CacheService
 from shop.app.schemas.role_schemas import (
     RoleCreate,
     RoleOut,
     RoleResponse,
     RoleUpdate,
 )
+from shop.app.services.cache_service import CacheService
 
 ROLES_CACHE_KEY = "roles:all"
 

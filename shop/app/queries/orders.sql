@@ -16,7 +16,7 @@ LEFT JOIN users u ON o.user_id = u.id
 ORDER BY o.created_at DESC
 LIMIT :limit OFFSET :offset;
 
--- name: get-orders-count
+-- name: get-orders-count^
 SELECT COUNT(*) AS total
 FROM orders;
 

@@ -19,6 +19,11 @@ class ProductRepository:
         rows = await self.queries.get_all_products(self.conn, limit=limit, offset=offset)
         return [ProductOut(**row) for row in rows]
 
+    async def get_total(self) -> int:
+        """Возвращает общее количество товаров (для аналитики)."""
+        row = await self.queries.get_products_count(self.conn)
+        return row["total"]
+
     async def create(self, product_data: dict) -> int:
         """Возвращает ID созданного продукта"""
         result = await self.queries.create_product(

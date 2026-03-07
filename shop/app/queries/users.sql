@@ -16,7 +16,7 @@ LEFT JOIN roles r ON u.role = r.id
 ORDER BY u.id
 LIMIT :limit OFFSET :offset;
 
--- name: get-users-count
+-- name: get-users-count^
 SELECT COUNT(*) AS total
 FROM users;
 

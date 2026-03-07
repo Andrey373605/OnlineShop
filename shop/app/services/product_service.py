@@ -1,14 +1,28 @@
 from fastapi import HTTPException
 
 from shop.app.repositories.product_repository import ProductRepository
-from shop.app.schemas.product_schemas import ProductCreate, ProductUpdate, ProductOut, ProductResponse
+from shop.app.schemas.product_schemas import (
+    ProductCreate,
+    ProductOut,
+    ProductResponse,
+    ProductUpdate,
+)
+from shop.app.services.cache_service import CacheService
 from shop.app.services.category_service import CategoryService
 
 
 class ProductService:
-    def __init__(self, product_repo: ProductRepository, category_service: CategoryService):
+    def __init__(
+        self,
+        product_repo: ProductRepository,
+        category_service: CategoryService,
+        cache: CacheService,
+        cache_ttl_seconds: int | None = None,
+    ):
         self.product_repo = product_repo
         self.category_service = category_service
+        self.cache = cache
+        self._cache_ttl_seconds = cache_ttl_seconds
 
     async def create_product(self, data: ProductCreate) -> dict:
         check_exist = await self.category_service.category_id_exists(data.category_id)
@@ -30,7 +44,13 @@ class ProductService:
         return product
 
     async def get_all_products(self, limit: int, offset: int) -> list[ProductOut]:
+        key = f"products:limit:{limit}:offset:{offset}"
+        if await self.cache.exists(key):
+            items_str = await self.cache.get_list(key)
+            return [ProductOut.model_validate_json(s) for s in items_str]
         products = await self.product_repo.get_all(limit=limit, offset=offset)
+        items_str = [p.model_dump_json() for p in products]
+        await self.cache.set_list_atomic(key, items_str, ttl_seconds=self._cache_ttl_seconds)
         return products
 
     async def update_product(self, product_id: int, data: ProductUpdate) -> ProductResponse:

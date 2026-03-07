@@ -17,7 +17,7 @@ LEFT JOIN categories c ON p.category_id = c.id
 ORDER BY p.id
 LIMIT :limit OFFSET :offset;
 
--- name: get-products-count
+-- name: get-products-count^
 SELECT COUNT(*) as total FROM products p;
 
 -- name: get-product-by-id^
