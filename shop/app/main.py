@@ -1,7 +1,10 @@
+from typing import Any
+
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, APIRouter
-
+from motor.motor_asyncio import AsyncIOMotorClient
 from shop.app.api.v1 import (
     analytics,
     auth,
@@ -16,7 +19,7 @@ from shop.app.api.v1 import (
     users,
 )
 from shop.app.core.config import settings
-from shop.app.core.db import get_db_pool, close_db_pool
+from shop.app.core.db import create_db_pool, close_db_pool
 from shop.app.services.cache_service import CacheService, CacheServiceConfig
 
 APP_VERSION = "1.0.0"
@@ -24,16 +27,20 @@ APP_VERSION = "1.0.0"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await get_db_pool()
+    app.state.db_pool = await create_db_pool()
 
     cache = CacheService(CacheServiceConfig.from_settings(settings))
     await cache.connect()
     app.state.cache_service = cache
 
+    mongo_client = AsyncIOMotorClient(settings.MONGO_URL)
+    app.state.mongo_client = mongo_client
+
     yield
 
+    await mongo_client.close()
     await cache.disconnect()
-    await close_db_pool()
+    await close_db_pool(app.state.db_pool)
 
 api_router = APIRouter(prefix="/api/v1")
 

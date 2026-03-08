@@ -1,7 +1,8 @@
 import asyncpg
 from fastapi import Depends
 
-from shop.app.core.db import get_db, queries
+from shop.app.core.db import queries
+from shop.app.dependencies.db import get_db
 from shop.app.repositories.cart_item_repository import CartItemRepository
 from shop.app.repositories.cart_repository import CartRepository
 from shop.app.repositories.category_repository import CategoryRepository

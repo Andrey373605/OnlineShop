@@ -15,6 +15,13 @@ class Settings(BaseSettings):
     APP_PORT: int = 8000
     DEBUG: bool = False
 
+    # MongoDB settings
+    MONGODB_HOST: str = "localhost"
+    MONGODB_PORT: int = 27017
+    MONGODB_USERNAME: str
+    MONGODB_PASSWORD: str
+    MONGODB_DB: str
+
     # Auth settings
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
@@ -47,6 +54,10 @@ class Settings(BaseSettings):
     @property
     def DATABASE_URL(self) -> str:
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+
+    @property
+    def MONGO_URL(self) -> str:
+        return f"mongodb://{self.MONGODB_USER}:{self.MONGODB_PASSWORD}@{self.MONGODB_HOST}:{self.MONGODB_PORT}/{self.MONGODB_DB}"
 
     model_config = ConfigDict(
         env_file=".env",
