@@ -1,7 +1,7 @@
 from shop.app.schemas.review_schemas import ReviewOut
 
 
-class ReviewRepository:
+class ReviewRepositorySql:
     def __init__(self, conn, queries):
         self.conn = conn
         self.queries = queries

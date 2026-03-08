@@ -1,7 +1,7 @@
 from shop.app.schemas.order_schemas import OrderOut
 
 
-class OrderRepository:
+class OrderRepositorySql:
     def __init__(self, conn, queries):
         self.conn = conn
         self.queries = queries

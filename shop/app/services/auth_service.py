@@ -11,9 +11,11 @@ from shop.app.core.security import (
     verify_password,
 )
 from shop.app.core.config import settings
-from shop.app.repositories.refresh_token_repository import RefreshTokenRepository
-from shop.app.repositories.role_repository import RoleRepository
-from shop.app.repositories.user_repository import UserRepository
+from shop.app.repositories.protocols import (
+    RefreshTokenRepository,
+    RoleRepository,
+    UserRepository,
+)
 from shop.app.services.cache_service import CacheService
 from shop.app.schemas.auth_schemas import (
     AuthResponse,

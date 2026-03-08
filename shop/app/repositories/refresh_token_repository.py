@@ -1,7 +1,7 @@
 from shop.app.schemas.refresh_token_schemas import RefreshTokenOut
 
 
-class RefreshTokenRepository:
+class RefreshTokenRepositorySql:
     def __init__(self, conn, queries):
         self.conn = conn
         self.queries = queries

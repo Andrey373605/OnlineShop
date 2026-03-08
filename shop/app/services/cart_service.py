@@ -2,9 +2,11 @@ from decimal import Decimal
 
 from fastapi import HTTPException, status
 
-from shop.app.repositories.cart_item_repository import CartItemRepository
-from shop.app.repositories.cart_repository import CartRepository
-from shop.app.repositories.product_repository import ProductRepository
+from shop.app.repositories.protocols import (
+    CartItemRepository,
+    CartRepository,
+    ProductRepository,
+)
 from shop.app.schemas.cart_item_schemas import CartItemAdd, CartItemQuantityUpdate, CartItemOut
 from shop.app.schemas.cart_schemas import CartWithItems, CartOut
 from shop.app.schemas.product_schemas import ProductOut

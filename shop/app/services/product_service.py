@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 
-from shop.app.repositories.product_repository import ProductRepository
+from shop.app.repositories.protocols import ProductRepository
 from shop.app.schemas.product_schemas import (
     ProductCreate,
     ProductOut,

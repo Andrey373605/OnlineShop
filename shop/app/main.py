@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    await mongo_client.close()
+    mongo_client.close()
     await cache.disconnect()
     await close_db_pool(app.state.db_pool)
 

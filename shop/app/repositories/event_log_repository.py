@@ -1,7 +1,7 @@
 from shop.app.schemas.event_log_schemas import EventLogOut
 
 
-class EventLogRepository:
+class EventLogRepositorySql:
     def __init__(self, conn, queries):
         self.conn = conn
         self.queries = queries

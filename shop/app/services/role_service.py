@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 
-from shop.app.repositories.role_repository import RoleRepository
+from shop.app.repositories.protocols import RoleRepository
 from shop.app.schemas.role_schemas import (
     RoleCreate,
     RoleOut,

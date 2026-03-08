@@ -5,7 +5,7 @@ from shop.app.core.config import settings
 from shop.app.core.security import decode_token
 from shop.app.dependencies.cache import get_cache_service
 from shop.app.dependencies.repositories import get_user_repository
-from shop.app.repositories.user_repository import UserRepository
+from shop.app.repositories.protocols import UserRepository
 from shop.app.schemas.user_schemas import UserOut
 from shop.app.services.cache_service import CacheService
 

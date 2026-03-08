@@ -17,21 +17,21 @@ from shop.app.dependencies.repositories import (
     get_role_repository,
     get_user_repository,
 )
-from shop.app.repositories.cart_item_repository import CartItemRepository
-from shop.app.repositories.cart_repository import CartRepository
-from shop.app.repositories.category_repository import CategoryRepository
-from shop.app.repositories.event_log_repository import EventLogRepository
-from shop.app.repositories.order_item_repository import OrderItemRepository
-from shop.app.repositories.order_repository import OrderRepository
-from shop.app.repositories.product_image_repository import ProductImageRepository
-from shop.app.repositories.product_repository import ProductRepository
-from shop.app.repositories.product_specification_repository import (
+from shop.app.repositories.protocols import (
+    CartItemRepository,
+    CartRepository,
+    CategoryRepository,
+    EventLogRepository,
+    OrderItemRepository,
+    OrderRepository,
+    ProductImageRepository,
+    ProductRepository,
     ProductSpecificationRepository,
+    RefreshTokenRepository,
+    ReviewRepository,
+    RoleRepository,
+    UserRepository,
 )
-from shop.app.repositories.refresh_token_repository import RefreshTokenRepository
-from shop.app.repositories.review_repository import ReviewRepository
-from shop.app.repositories.role_repository import RoleRepository
-from shop.app.repositories.user_repository import UserRepository
 from shop.app.services.analytics_service import AnalyticsService
 from shop.app.services.auth_service import AuthService
 from shop.app.services.cache_service import CacheService

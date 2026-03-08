@@ -1,7 +1,7 @@
 from shop.app.schemas.product_image_schemas import ProductImageOut
 
 
-class ProductImageRepository:
+class ProductImageRepositorySql:
     def __init__(self, conn, queries):
         self.conn = conn
         self.queries = queries

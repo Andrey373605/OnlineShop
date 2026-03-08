@@ -1,8 +1,10 @@
 from fastapi import HTTPException, status
 
-from shop.app.repositories.order_item_repository import OrderItemRepository
-from shop.app.repositories.order_repository import OrderRepository
-from shop.app.repositories.product_repository import ProductRepository
+from shop.app.repositories.protocols import (
+    OrderItemRepository,
+    OrderRepository,
+    ProductRepository,
+)
 from shop.app.schemas.order_item_schemas import (
     OrderItemCreate,
     OrderItemOut,

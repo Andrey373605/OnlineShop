@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 
-from shop.app.repositories.category_repository import CategoryRepository
+from shop.app.repositories.protocols import CategoryRepository
 from shop.app.schemas.category_schemas import (
     CategoryCreate,
     CategoryOut,

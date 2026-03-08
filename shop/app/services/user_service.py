@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 
 from shop.app.core.security import hash_password
-from shop.app.repositories.user_repository import UserRepository
+from shop.app.repositories.protocols import UserRepository
 from shop.app.schemas.user_schemas import (
     UserCreate,
     UserOut,

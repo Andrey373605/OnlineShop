@@ -1,7 +1,7 @@
 from shop.app.schemas.cart_schemas import CartOut
 
 
-class CartRepository:
+class CartRepositorySql:
     def __init__(self, conn, queries):
         self.conn = conn
         self.queries = queries

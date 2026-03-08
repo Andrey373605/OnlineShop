@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # MongoDB settings
     MONGODB_HOST: str = "localhost"
     MONGODB_PORT: int = 27017
-    MONGODB_USERNAME: str
+    MONGODB_USER: str
     MONGODB_PASSWORD: str
     MONGODB_DB: str
 
@@ -57,7 +57,7 @@ class Settings(BaseSettings):
 
     @property
     def MONGO_URL(self) -> str:
-        return f"mongodb://{self.MONGODB_USER}:{self.MONGODB_PASSWORD}@{self.MONGODB_HOST}:{self.MONGODB_PORT}/{self.MONGODB_DB}"
+        return f"mongodb://{self.MONGODB_USER}:{self.MONGODB_PASSWORD}@{self.MONGODB_HOST}:{self.MONGODB_PORT}/{self.MONGODB_DB}?authSource=admin"
 
     model_config = ConfigDict(
         env_file=".env",

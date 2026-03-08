@@ -1,7 +1,7 @@
 from shop.app.schemas.category_schemas import CategoryOut
 
 
-class CategoryRepository:
+class CategoryRepositorySql:
     def __init__(self, conn, queries):
         self.conn = conn
         self.queries = queries

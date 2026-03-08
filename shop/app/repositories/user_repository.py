@@ -5,7 +5,7 @@ from pydantic import EmailStr
 from shop.app.schemas.user_schemas import UserDB, UserOut
 
 
-class UserRepository:
+class UserRepositorySql:
     def __init__(self, conn, queries):
         self.conn = conn
         self.queries = queries

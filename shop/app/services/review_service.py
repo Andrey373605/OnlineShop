@@ -1,7 +1,6 @@
 from fastapi import HTTPException, status
 
-from shop.app.repositories.product_repository import ProductRepository
-from shop.app.repositories.review_repository import ReviewRepository
+from shop.app.repositories.protocols import ProductRepository, ReviewRepository
 from shop.app.schemas.review_schemas import ReviewCreate, ReviewOut, ReviewUpdate
 
 

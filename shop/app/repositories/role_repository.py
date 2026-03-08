@@ -1,7 +1,7 @@
 from shop.app.schemas.role_schemas import RoleOut
 
 
-class RoleRepository:
+class RoleRepositorySql:
     def __init__(self, conn, queries):
         self.conn = conn
         self.queries = queries

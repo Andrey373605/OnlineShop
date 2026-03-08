@@ -1,7 +1,9 @@
 from fastapi import HTTPException
 
-from shop.app.repositories.product_image_repository import ProductImageRepository
-from shop.app.repositories.product_repository import ProductRepository
+from shop.app.repositories.protocols import (
+    ProductImageRepository,
+    ProductRepository,
+)
 from shop.app.schemas.product_image_schemas import (
     ProductImageCreate,
     ProductImageOut,

@@ -3,7 +3,7 @@ from typing import Any
 
 from fastapi import Request
 
-from shop.app.repositories.event_log_repository import EventLogRepository
+from shop.app.repositories.protocols import EventLogRepository
 from shop.app.schemas.event_log_schemas import EventLogCreate, EventLogOut
 
 

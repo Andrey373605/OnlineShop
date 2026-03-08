@@ -1,7 +1,7 @@
 from shop.app.schemas.product_schemas import ProductOut
 
 
-class ProductRepository:
+class ProductRepositorySql:
     def __init__(self, conn, queries):
         self.conn = conn
         self.queries = queries

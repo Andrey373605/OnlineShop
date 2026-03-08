@@ -1,8 +1,10 @@
 import json
 
-from shop.app.repositories.order_repository import OrderRepository
-from shop.app.repositories.product_repository import ProductRepository
-from shop.app.repositories.user_repository import UserRepository
+from shop.app.repositories.protocols import (
+    OrderRepository,
+    ProductRepository,
+    UserRepository,
+)
 from shop.app.schemas.analytics_schemas import StatsOut
 from shop.app.services.cache_service import CacheService
 

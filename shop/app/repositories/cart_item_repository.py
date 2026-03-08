@@ -2,7 +2,7 @@
 from shop.app.schemas.cart_item_schemas import CartItemOut
 
 
-class CartItemRepository:
+class CartItemRepositorySql:
     def __init__(self, conn, queries):
         self.conn = conn
         self.queries = queries
