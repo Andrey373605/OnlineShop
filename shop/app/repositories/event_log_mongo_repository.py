@@ -36,7 +36,6 @@ class EventLogRepositoryMongo:
         return [self._to_out(d) for d in docs]
 
     async def create(self, data: dict) -> int:
-        print(f"CREATE {data=}")
         cursor = self.collection.find().sort("id", -1).limit(1)
         last = await cursor.to_list(length=1)
         next_id = (last[0]["id"] + 1) if last else 1
