@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from shop.app.dependencies.auth import get_current_user
 from shop.app.dependencies.services import get_auth_service, get_event_log_service
+from shop.app.schemas.event_log_schemas import EventType
 from shop.app.services.event_log_service import EventLogService
 from shop.app.schemas.auth_schemas import (
     AuthResponse,
@@ -34,7 +35,7 @@ async def register_user(
 ) -> RegisterResponse:
     response = await auth_service.register(payload)
     await event_log_service.log_event(
-        "AUTH_REGISTER",
+        EventType.AUTH_REGISTER,
         user_id=response.user.id,
         description=f"User {response.user.username} registered",
         request=request,
@@ -51,7 +52,7 @@ async def login_user(
 ) -> AuthResponse:
     response = await auth_service.login(payload)
     await event_log_service.log_event(
-        "AUTH_LOGIN",
+        EventType.AUTH_LOGIN,
         user_id=response.user.id,
         description=f"User {response.user.username} logged in",
         request=request,
@@ -69,7 +70,7 @@ async def login_token(
     payload = LoginRequest(username=form_data.username, password=form_data.password)
     auth_response = await auth_service.login(payload)
     await event_log_service.log_event(
-        "AUTH_LOGIN",
+        EventType.AUTH_LOGIN,
         user_id=auth_response.user.id,
         description=f"User {auth_response.user.username} logged in via form",
         request=request,
@@ -92,7 +93,7 @@ async def refresh_tokens(
     except Exception:
         user_id = None
     await event_log_service.log_event(
-        "AUTH_REFRESH",
+        EventType.AUTH_REFRESH,
         user_id=user_id,
         description="Refresh token exchanged",
         request=request,
@@ -110,7 +111,7 @@ async def logout_user(
 ) -> None:
     await auth_service.logout(payload)
     await event_log_service.log_event(
-        "AUTH_LOGOUT",
+        EventType.AUTH_LOGOUT,
         user_id=current_user.id,
         description=f"User {current_user.username} logged out",
         request=request,

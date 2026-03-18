@@ -1,8 +1,30 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorDatabase
 
 from shop.app.schemas.event_log_schemas import EventLogOut
+
+
+def _build_filter_query(
+    *,
+    time_from: datetime | None = None,
+    time_to: datetime | None = None,
+    user_id: int | None = None,
+    event_type: str | None = None,
+) -> dict:
+    """Собирает MongoDB-запрос по опциональным фильтрам."""
+    query: dict = {}
+    if time_from is not None or time_to is not None:
+        query["created_at"] = {}
+        if time_from is not None:
+            query["created_at"]["$gte"] = time_from
+        if time_to is not None:
+            query["created_at"]["$lte"] = time_to
+    if user_id is not None:
+        query["user_id"] = user_id
+    if event_type is not None:
+        query["event_type"] = event_type
+    return query
 
 
 class EventLogRepositoryMongo:
@@ -35,12 +57,38 @@ class EventLogRepositoryMongo:
         docs = await cursor.to_list(length=limit)
         return [self._to_out(d) for d in docs]
 
+    async def get_filtered(
+        self,
+        *,
+        time_from: datetime | None = None,
+        time_to: datetime | None = None,
+        user_id: int | None = None,
+        event_type: str | None = None,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[EventLogOut], int]:
+        query = _build_filter_query(
+            time_from=time_from,
+            time_to=time_to,
+            user_id=user_id,
+            event_type=event_type,
+        )
+        total = await self.collection.count_documents(query)
+        cursor = (
+            self.collection.find(query)
+            .sort("created_at", -1)
+            .skip(offset)
+            .limit(limit)
+        )
+        docs = await cursor.to_list(length=limit)
+        return [self._to_out(d) for d in docs], total
+
     async def create(self, data: dict) -> int:
         cursor = self.collection.find().sort("id", -1).limit(1)
         last = await cursor.to_list(length=1)
         next_id = (last[0]["id"] + 1) if last else 1
         data["id"] = next_id
-        data.setdefault("created_at", datetime.utcnow())
+        data.setdefault("created_at", datetime.now(timezone.utc))
         await self.collection.insert_one(data)
         return next_id
 

@@ -5,6 +5,10 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from shop.app.api.v1.router import get_api_router
 from shop.app.core.config import settings
 from shop.app.core.db import create_db_pool, close_db_pool
+from shop.app.core.mongo_indexes import (
+    ensure_event_log_search_indexes,
+    ensure_event_log_ttl_index,
+)
 from shop.app.middlewares.registration import register_middleware
 from shop.app.services.cache_service import CacheService, CacheServiceConfig
 
@@ -21,6 +25,10 @@ async def lifespan(app: FastAPI):
 
     mongo_client = AsyncIOMotorClient(settings.MONGO_URL)
     app.state.mongo_client = mongo_client
+
+    # Инициализация TTL-индексов в MongoDB (включая event_log)
+    await ensure_event_log_ttl_index(mongo_client[settings.MONGODB_DB])
+    await ensure_event_log_search_indexes(mongo_client[settings.MONGODB_DB])
 
     yield
 

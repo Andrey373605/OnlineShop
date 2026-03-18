@@ -146,6 +146,16 @@ class EventLogRepository(Protocol):
     async def get_by_user_id(
         self, user_id: int, limit: int, offset: int
     ) -> list[EventLogOut]: ...
+    async def get_filtered(
+        self,
+        *,
+        time_from: datetime | None = None,
+        time_to: datetime | None = None,
+        user_id: int | None = None,
+        event_type: str | None = None,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[EventLogOut], int]: ...
     async def create(self, data: dict) -> int: ...
     async def delete(self, event_id: int) -> bool: ...
 

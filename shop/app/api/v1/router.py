@@ -5,6 +5,7 @@ from shop.app.api.v1 import (
     auth,
     cart,
     categories,
+    event_logs,
     orders,
     product_images,
     product_specifications,
@@ -20,6 +21,7 @@ def get_api_router() -> APIRouter:
 
     router.include_router(auth.router)
     router.include_router(analytics.router)
+    router.include_router(event_logs.router)
     router.include_router(categories.router)
     router.include_router(products.router)
     router.include_router(cart.router)

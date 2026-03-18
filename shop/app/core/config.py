@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     ANALYTICS_CACHE_TTL_SECONDS: int = 60
     USER_SESSION_CACHE_TTL_SECONDS: int = 1800 
 
+    # Event log retention (MongoDB TTL)
+    EVENT_LOG_TTL_DAYS: int = 30
+
     SECONDS_IN_MINUTE: int = 60
 
     @property
