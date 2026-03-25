@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     # Role ID for new registrations (e.g. 2 = "user"). Must exist in roles table.
+    DEFAULT_ADMIN_ROLE_ID: int = 1
     DEFAULT_USER_ROLE_ID: int = 2
 
     # Redis Settings

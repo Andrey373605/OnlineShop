@@ -1,10 +1,11 @@
 from datetime import datetime
+from enum import Enum
 
 from pydantic import BaseModel, Field
 
 
 # Типы событий для единообразия
-class EventType:
+class EventType(Enum):
     AUTH_LOGIN = "AUTH_LOGIN"
     AUTH_LOGOUT = "AUTH_LOGOUT"
     AUTH_REGISTER = "AUTH_REGISTER"

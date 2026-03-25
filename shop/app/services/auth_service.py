@@ -55,7 +55,6 @@ class AuthService:
     async def register(self, payload: RegisterRequest) -> RegisterResponse:
         await self._ensure_unique_credentials(payload.username, payload.email)
         await self._ensure_default_role_exists()
-
         user = await self._create_user_with_default_role(payload)
         return RegisterResponse(
             message="Registration successful",

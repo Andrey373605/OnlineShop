@@ -3,9 +3,7 @@ import traceback
 from typing import Awaitable, Callable
 
 from fastapi import Request, Response
-from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from shop.app.core.config import settings
 from shop.app.repositories.event_log_mongo_repository import EventLogRepositoryMongo
