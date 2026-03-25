@@ -1,5 +1,8 @@
-from fastapi import HTTPException
-
+from shop.app.core.exceptions import (
+    AlreadyExistsError,
+    NotFoundError,
+    OperationFailedError,
+)
 from shop.app.repositories.protocols import CategoryRepository
 from shop.app.schemas.category_schemas import (
     CategoryCreate,
@@ -10,7 +13,7 @@ from shop.app.schemas.category_schemas import (
 from shop.app.services.cache_service import CacheService
 
 CATEGORIES_CACHE_KEY = "categories:all"
-from starlette.exceptions import HTTPException as StarletteHTTPException
+
 
 class CategoryService:
     def __init__(
@@ -26,12 +29,12 @@ class CategoryService:
     async def create_category(self, data: CategoryCreate) -> dict:
         check_exist = await self._category_name_exists(data.name)
         if check_exist:
-            raise HTTPException(status_code=400, detail="Category name already exists")
+            raise AlreadyExistsError("Category name")
 
         category_id = await self.category_repo.create(data.model_dump())
 
         if not category_id:
-            raise HTTPException(status_code=500, detail="Failed to create category")
+            raise OperationFailedError("Failed to create category")
 
         await self._invalidate_cache()
         return {"id": category_id, "message": "Category created successfully"}
@@ -40,7 +43,7 @@ class CategoryService:
         category = await self.category_repo.get_by_id(category_id)
 
         if not category:
-            raise HTTPException(status_code=404, detail="Category not found")
+            raise NotFoundError("Category")
 
         return category
 
@@ -58,12 +61,12 @@ class CategoryService:
     async def update_category(self, category_id: int, data: CategoryUpdate) -> CategoryResponse:
         check_exist = await self.category_id_exists(category_id)
         if not check_exist:
-            raise HTTPException(status_code=404, detail="Category not found")
+            raise NotFoundError("Category")
 
         success = await self.category_repo.update(category_id, data.model_dump(exclude_unset=True))
 
         if not success:
-            raise HTTPException(status_code=500, detail="Failed to update category")
+            raise OperationFailedError("Failed to update category")
 
         await self._invalidate_cache()
         return CategoryResponse(id=category_id, message="Category updated successfully")
@@ -71,16 +74,12 @@ class CategoryService:
     async def delete_category(self, category_id: int) -> CategoryResponse:
         check_exist = await self.category_id_exists(category_id)
         if not check_exist:
-            raise HTTPException(status_code=404, detail="Category not found")
-
-        # Бизнес-логика: можно ли удалять?
-        # if category.has_products():
-        #     raise HTTPException(status_code=400, detail="Cannot delete category with products")
+            raise NotFoundError("Category")
 
         success = await self.category_repo.delete(category_id)
 
         if not success:
-            raise HTTPException(status_code=500, detail="Failed to delete category")
+            raise OperationFailedError("Failed to delete category")
 
         await self._invalidate_cache()
         return CategoryResponse(id=category_id, message="Category deleted successfully")

@@ -1,5 +1,4 @@
-from fastapi import HTTPException
-
+from shop.app.core.exceptions import NotFoundError, OperationFailedError
 from shop.app.repositories.protocols import ProductRepository
 from shop.app.schemas.product_schemas import (
     ProductCreate,
@@ -27,11 +26,11 @@ class ProductService:
     async def create_product(self, data: ProductCreate) -> dict:
         check_exist = await self.category_service.category_id_exists(data.category_id)
         if not check_exist:
-            raise HTTPException(status_code=400, detail="Category not found")
+            raise NotFoundError("Category")
         product_id = await self.product_repo.create(data.model_dump())
 
         if not product_id:
-            raise HTTPException(status_code=500, detail="Failed to create product")
+            raise OperationFailedError("Failed to create product")
 
         return {"id": product_id, "message": "Product created successfully"}
 
@@ -39,7 +38,7 @@ class ProductService:
         product = await self.product_repo.get_by_id(product_id)
 
         if not product:
-            raise HTTPException(status_code=404, detail="Product not found")
+            raise NotFoundError("Product")
 
         return product
 
@@ -56,24 +55,24 @@ class ProductService:
     async def update_product(self, product_id: int, data: ProductUpdate) -> ProductResponse:
         check_exist = await self._product_id_exists(product_id)
         if not check_exist:
-            raise HTTPException(status_code=404, detail="Product not found")
+            raise NotFoundError("Product")
 
         success = await self.product_repo.update(product_id, data.model_dump(exclude_unset=True))
 
         if not success:
-            raise HTTPException(status_code=500, detail="Failed to update product")
+            raise OperationFailedError("Failed to update product")
 
         return ProductResponse(id=product_id, message="Product updated successfully")
 
     async def delete_product(self, product_id: int) -> ProductResponse:
         check_exist = await self._product_id_exists(product_id)
         if not check_exist:
-            raise HTTPException(status_code=404, detail="Product not found")
+            raise NotFoundError("Product")
 
         success = await self.product_repo.delete(product_id)
 
         if not success:
-            raise HTTPException(status_code=500, detail="Failed to delete product")
+            raise OperationFailedError("Failed to delete product")
 
         return ProductResponse(id=product_id, message="Product deleted successfully")
 

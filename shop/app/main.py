@@ -5,6 +5,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from shop.app.api.v1.router import get_api_router
 from shop.app.core.config import settings
 from shop.app.core.db import create_db_pool, close_db_pool
+from shop.app.core.exception_handlers import register_exception_handlers
 from shop.app.core.mongo_indexes import (
     ensure_event_log_search_indexes,
     ensure_event_log_ttl_index,
@@ -45,6 +46,7 @@ def create_app() -> FastAPI:
         debug=settings.DEBUG,
         lifespan=lifespan,
     )
+    register_exception_handlers(new_app)
     register_middleware(new_app)
     new_app.include_router(get_api_router())
     return new_app

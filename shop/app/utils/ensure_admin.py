@@ -1,5 +1,4 @@
-from fastapi import HTTPException, status
-
+from shop.app.core.exceptions import PermissionDeniedError
 from shop.app.schemas.user_schemas import UserOut
 
 
@@ -13,7 +12,4 @@ def is_admin(user: UserOut) -> bool:
 
 def _ensure_admin(current_user: UserOut) -> None:
     if not is_admin(current_user):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required",
-        )
+        raise PermissionDeniedError("Admin privileges required")

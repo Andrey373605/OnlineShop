@@ -1,7 +1,10 @@
 from decimal import Decimal
 
-from fastapi import HTTPException, status
-
+from shop.app.core.exceptions import (
+    DomainValidationError,
+    NotFoundError,
+    OperationFailedError,
+)
 from shop.app.repositories.protocols import (
     CartItemRepository,
     CartRepository,
@@ -29,7 +32,7 @@ class CartService:
 
     async def add_item(self, user_id: int, data: CartItemAdd) -> CartWithItems:
         cart = await self._ensure_cart(user_id)
-        product = await self._get_product_or_404(data.product_id)
+        product = await self._get_product_or_raise(data.product_id)
         self._validate_quantity(data.quantity, product)
 
         existing_item = await self.cart_item_repo.get_by_cart_and_product(
@@ -63,8 +66,8 @@ class CartService:
             data: CartItemQuantityUpdate,
     ) -> CartWithItems:
         cart = await self._ensure_cart(user_id)
-        cart_item = await self._get_cart_item_or_404(item_id, cart.id)
-        product = await self._get_product_or_404(cart_item.product_id)
+        cart_item = await self._get_cart_item_or_raise(item_id, cart.id)
+        product = await self._get_product_or_raise(cart_item.product_id)
         self._validate_quantity(data.quantity, product)
 
         await self.cart_item_repo.update(
@@ -76,7 +79,7 @@ class CartService:
 
     async def remove_item(self, user_id: int, item_id: int) -> CartWithItems:
         cart = await self._ensure_cart(user_id)
-        await self._get_cart_item_or_404(item_id, cart.id)
+        await self._get_cart_item_or_raise(item_id, cart.id)
         await self.cart_item_repo.delete(item_id)
         await self._recalculate_total(cart.id)
         return await self._build_cart_response(cart)
@@ -99,10 +102,7 @@ class CartService:
         )
         created_cart = await self.cart_repo.get_by_id(cart_id)
         if not created_cart:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create cart",
-            )
+            raise OperationFailedError("Failed to create cart")
         return created_cart
 
     async def _build_cart_response(self, cart: CartOut) -> CartWithItems:
@@ -122,37 +122,25 @@ class CartService:
         )
         return total
 
-    async def _get_product_or_404(self, product_id: int) -> ProductOut:
+    async def _get_product_or_raise(self, product_id: int) -> ProductOut:
         product = await self.product_repo.get_by_id(product_id)
         if not product:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Product not found",
-            )
+            raise NotFoundError("Product")
         return product
 
-    async def _get_cart_item_or_404(
+    async def _get_cart_item_or_raise(
             self,
             item_id: int,
             cart_id: int,
     ) -> CartItemOut:
         cart_item = await self.cart_item_repo.get_by_id(item_id)
         if not cart_item or cart_item.cart_id != cart_id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Cart item not found",
-            )
+            raise NotFoundError("Cart item")
         return cart_item
 
     @staticmethod
     def _validate_quantity(quantity: int, product: ProductOut) -> None:
         if quantity <= 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Quantity must be greater than zero",
-            )
+            raise DomainValidationError("Quantity must be greater than zero")
         if quantity > product.stock:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Requested quantity exceeds available stock",
-            )
+            raise DomainValidationError("Requested quantity exceeds available stock")

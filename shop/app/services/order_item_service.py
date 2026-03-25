@@ -1,5 +1,8 @@
-from fastapi import HTTPException, status
-
+from shop.app.core.exceptions import (
+    DomainValidationError,
+    NotFoundError,
+    OperationFailedError,
+)
 from shop.app.repositories.protocols import (
     OrderItemRepository,
     OrderRepository,
@@ -26,16 +29,13 @@ class OrderItemService:
         self.product_repo = product_repo
 
     async def list_order_items(self, order_id: int) -> list[OrderItemOut]:
-        await self._get_order_or_404(order_id)
+        await self._get_order_or_raise(order_id)
         return await self.order_item_repo.get_by_order_id(order_id)
 
     async def get_order_item(self, order_id: int, item_id: int) -> OrderItemOut:
-        item = await self._get_item_or_404(item_id)
+        item = await self._get_item_or_raise(item_id)
         if item.order_id != order_id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Order item not found",
-            )
+            raise NotFoundError("Order item")
         return item
 
     async def create_order_item(
@@ -44,14 +44,14 @@ class OrderItemService:
             data: OrderItemCreate,
     ) -> OrderItemOut:
         self._validate_order_item_request(order_id, data.order_id)
-        await self._get_order_or_404(order_id)
-        await self._get_product_or_404(data.product_id)
+        await self._get_order_or_raise(order_id)
+        await self._get_product_or_raise(data.product_id)
 
         payload = data.model_dump()
         payload["order_id"] = order_id
 
         item_id = await self.order_item_repo.create(payload)
-        return await self._get_item_or_500(item_id, detail="Unable to fetch created order item")
+        return await self._get_item_or_fail(item_id, detail="Unable to fetch created order item")
 
     async def update_order_item(
             self,
@@ -62,70 +62,49 @@ class OrderItemService:
         item = await self.get_order_item(order_id, item_id)
 
         if data.order_id is not None and data.order_id != order_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot move order item to another order",
-            )
+            raise DomainValidationError("Cannot move order item to another order")
 
         if data.product_id is not None and data.product_id != item.product_id:
-            await self._get_product_or_404(data.product_id)
+            await self._get_product_or_raise(data.product_id)
 
         update_payload = data.model_dump(exclude_unset=True)
         update_payload["order_id"] = order_id
 
         updated = await self.order_item_repo.update(item_id, update_payload)
         if not updated:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to update order item",
-            )
+            raise OperationFailedError("Failed to update order item")
 
-        return await self._get_item_or_500(item_id, detail="Unable to fetch updated order item")
+        return await self._get_item_or_fail(item_id, detail="Unable to fetch updated order item")
 
     async def delete_order_item(self, order_id: int, item_id: int) -> None:
         await self.get_order_item(order_id, item_id)
 
         deleted = await self.order_item_repo.delete(item_id)
         if not deleted:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to delete order item",
-            )
+            raise OperationFailedError("Failed to delete order item")
 
-    async def _get_order_or_404(self, order_id: int) -> OrderOut:
+    async def _get_order_or_raise(self, order_id: int) -> OrderOut:
         order = await self.order_repo.get_by_id(order_id)
         if not order:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Order not found",
-            )
+            raise NotFoundError("Order")
         return order
 
-    async def _get_product_or_404(self, product_id: int) -> ProductOut:
+    async def _get_product_or_raise(self, product_id: int) -> ProductOut:
         product = await self.product_repo.get_by_id(product_id)
         if not product:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Product not found",
-            )
+            raise NotFoundError("Product")
         return product
 
-    async def _get_item_or_404(self, item_id: int) -> OrderItemOut:
+    async def _get_item_or_raise(self, item_id: int) -> OrderItemOut:
         item = await self.order_item_repo.get_by_id(item_id)
         if not item:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Order item not found",
-            )
+            raise NotFoundError("Order item")
         return item
 
-    async def _get_item_or_500(self, item_id: int, detail: str) -> OrderItemOut:
+    async def _get_item_or_fail(self, item_id: int, detail: str) -> OrderItemOut:
         item = await self.order_item_repo.get_by_id(item_id)
         if not item:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=detail,
-            )
+            raise OperationFailedError(detail)
         return item
 
     @staticmethod
@@ -134,7 +113,4 @@ class OrderItemService:
             body_order_id: int | None,
     ) -> None:
         if body_order_id is not None and body_order_id != path_order_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="order_id mismatch between path and body",
-            )
+            raise DomainValidationError("order_id mismatch between path and body")

@@ -1,7 +1,13 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import HTTPException, status
-
+from shop.app.core.exceptions import (
+    AlreadyExistsError,
+    AuthenticationError,
+    NotFoundError,
+    OperationFailedError,
+    PermissionDeniedError,
+    ServiceUnavailableError,
+)
 from shop.app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -99,21 +105,18 @@ class AuthService:
 
     async def _ensure_unique_credentials(self, username: str, email: str) -> None:
         if await self.user_repo.exists_with_username(username):
-            raise HTTPException(status_code=400, detail="Username already exists")
+            raise AlreadyExistsError("Username")
 
         if await self.user_repo.exists_with_email(email):
-            raise HTTPException(status_code=400, detail="Email already exists")
+            raise AlreadyExistsError("Email")
 
     async def _ensure_default_role_exists(self) -> None:
         default_role = await self.role_repo.get_by_id(settings.DEFAULT_USER_ROLE_ID)
         if not default_role:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=(
-                    f"Registration is temporarily unavailable: default user role "
-                    f"(id={settings.DEFAULT_USER_ROLE_ID}) is not configured. "
-                    "Please contact the administrator."
-                ),
+            raise ServiceUnavailableError(
+                f"Registration is temporarily unavailable: default user role "
+                f"(id={settings.DEFAULT_USER_ROLE_ID}) is not configured. "
+                "Please contact the administrator."
             )
 
     async def _create_user_with_default_role(
@@ -133,39 +136,27 @@ class AuthService:
         )
         user = await self.user_repo.get_by_id(user_id)
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Unable to fetch created user",
-            )
+            raise OperationFailedError("Unable to fetch created user")
         return user
 
     async def _authenticate_user(self, payload: LoginRequest) -> UserOut:
         if await self.cache.is_blacklisted(payload.username):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=(
-                    "Account temporarily blocked due to too many failed login "
-                    f"attempts. Please try again in {settings.BLOCK_TIME_MINUTES} minutes."
-                ),
+            raise PermissionDeniedError(
+                "Account temporarily blocked due to too many failed login "
+                f"attempts. Please try again in {settings.BLOCK_TIME_MINUTES} minutes."
             )
 
         user = await self.user_repo.get_by_username(payload.username)
         if not user or not verify_password(payload.password, user.password_hash):
             await self._handle_failed_attempt(payload.username)
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect username or password",
-            )
+            raise AuthenticationError("Incorrect username or password")
 
         return user
 
     @staticmethod
     def _ensure_user_active(user: UserOut) -> None:
         if not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is disabled",
-            )
+            raise PermissionDeniedError("User is disabled")
 
     async def _reload_user(self, user_id: int) -> UserOut:
         await self.user_repo.update_last_login(
@@ -174,52 +165,34 @@ class AuthService:
         )
         user = await self.user_repo.get_by_id(user_id)
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="User not found",
-            )
+            raise OperationFailedError("User not found")
         return user
 
     def _decode_and_validate_refresh_token(self, refresh_token: str) -> dict:
         try:
             token_data = decode_token(refresh_token)
         except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token",
-            )
+            raise AuthenticationError("Invalid refresh token")
 
         if token_data.get("scope") != "refresh_token":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token scope",
-            )
+            raise AuthenticationError("Invalid refresh token scope")
 
         return token_data
 
     async def _get_refresh_session_or_unauthorized(self, token_hash: str):
         stored_token = await self.refresh_repo.get_by_hash(token_hash)
         if not stored_token:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Refresh token revoked",
-            )
+            raise AuthenticationError("Refresh token revoked")
         return stored_token
 
     async def _get_user_for_refresh(self, user_id: int, token_data: dict) -> UserOut:
         token_user_id = int(token_data.get("sub"))
         if user_id != token_user_id:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Refresh token mismatch",
-            )
+            raise AuthenticationError("Refresh token mismatch")
 
         user = await self.user_repo.get_by_id(user_id)
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found",
-            )
+            raise NotFoundError("User")
         return user
 
     async def _handle_failed_attempt(self, username: str) -> None:
@@ -271,4 +244,3 @@ class AuthService:
                 "expires_at": expires_at,
             }
         )
-
