@@ -128,7 +128,7 @@ class AuthService:
                 "full_name": payload.full_name,
                 "is_active": True,
                 "role": settings.DEFAULT_USER_ROLE_ID,
-                "last_login": datetime.now(),
+                "last_login": datetime.now(timezone.utc),
             }
         )
         user = await self.user_repo.get_by_id(user_id)
@@ -169,8 +169,8 @@ class AuthService:
 
     async def _reload_user(self, user_id: int) -> UserOut:
         await self.user_repo.update_last_login(
-            user_id,
-            last_login=datetime.now(),
+            user_id=user_id,
+            last_login=datetime.now(timezone.utc),
         )
         user = await self.user_repo.get_by_id(user_id)
         if not user:
@@ -226,7 +226,7 @@ class AuthService:
         attempts = await self.cache.increment_failed_attempts(username)
         if attempts >= settings.MAX_FAILED_ATTEMPTS:
             await self.cache.add_to_blocklist(
-                username,
+                username=username,
                 ttl_minutes=settings.BLOCK_TIME_MINUTES,
             )
 
@@ -261,7 +261,7 @@ class AuthService:
         )
 
     async def _store_refresh_token(self, user_id: int, refresh_token: str) -> None:
-        expires_at = datetime.now() + timedelta(
+        expires_at = datetime.now(timezone.utc) + timedelta(
             days=settings.REFRESH_TOKEN_EXPIRE_DAYS
         )
         await self.refresh_repo.create(

@@ -10,7 +10,7 @@ from shop.app.schemas.category_schemas import (
 from shop.app.services.cache_service import CacheService
 
 CATEGORIES_CACHE_KEY = "categories:all"
-
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 class CategoryService:
     def __init__(

@@ -1,4 +1,6 @@
-from pydantic import ConfigDict
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from pydantic import ConfigDict, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -39,7 +41,7 @@ class Settings(BaseSettings):
 
     # Failed login attempts
     MAX_FAILED_ATTEMPTS: int = 3
-    BLOCK_TIME_MINUTES: int = 10
+    BLOCK_TIME_MINUTES: int = 2
 
     # Cache TTL
     ROLES_CACHE_TTL_SECONDS: int = 300
@@ -51,8 +53,23 @@ class Settings(BaseSettings):
 
     # Event log retention (MongoDB TTL)
     EVENT_LOG_TTL_DAYS: int = 30
+    # IANA-имя пояса для меток времени в логах (например Europe/Moscow, UTC)
+    EVENT_LOG_TIMEZONE: str = "UTC"
 
     SECONDS_IN_MINUTE: int = 60
+
+    @field_validator("EVENT_LOG_TIMEZONE")
+    @classmethod
+    def validate_event_log_timezone(cls, v: str) -> str:
+        try:
+            ZoneInfo(v)
+        except ZoneInfoNotFoundError as e:
+            raise ValueError(f"Invalid EVENT_LOG_TIMEZONE: {v!r}") from e
+        return v
+
+    @property
+    def event_log_tz(self) -> ZoneInfo:
+        return ZoneInfo(self.EVENT_LOG_TIMEZONE)
 
     @property
     def DATABASE_URL(self) -> str:

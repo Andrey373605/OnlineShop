@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import EmailStr
 
@@ -45,7 +46,7 @@ class UserRepositorySql:
         )
         return bool(result)
 
-    async def update_last_login(self, user_id: int, last_login=datetime.now()) -> bool:
+    async def update_last_login(self, user_id: int, last_login: datetime) -> bool:
         result = await self.queries.update_last_login(
             self.conn,
             id=user_id,
