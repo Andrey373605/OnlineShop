@@ -2,7 +2,20 @@ from datetime import datetime, timezone
 
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorDatabase
 
+from shop.app.core.config import settings
 from shop.app.schemas.event_log_schemas import EventLogOut
+
+
+def _event_log_now() -> datetime:
+    """Момент записи лога в настроенном часовом поясе (в BSON уходит тот же инстант в UTC)."""
+    return datetime.now(timezone.utc)
+
+
+def _created_at_for_api(dt: datetime) -> datetime:
+    """Mongo отдаёт UTC (часто без tzinfo); для API — в EVENT_LOG_TIMEZONE."""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(settings.event_log_tz)
 
 
 def _build_filter_query(
@@ -35,8 +48,14 @@ class EventLogRepositoryMongo:
     def collection(self) -> AsyncIOMotorCollection:
         return self.db["event_log"]
 
+    @property
+    def counter_collection(self) -> AsyncIOMotorCollection:
+        return self.db["counter_collection"]
+
     def _to_out(self, doc: dict) -> EventLogOut:
         data = {k: v for k, v in doc.items() if k != "_id"}
+        if (ca := data.get("created_at")) is not None:
+            data["created_at"] = _created_at_for_api(ca)
         return EventLogOut(**data)
 
     async def get_all(self, limit: int, offset: int) -> list[EventLogOut]:
@@ -83,12 +102,19 @@ class EventLogRepositoryMongo:
         docs = await cursor.to_list(length=limit)
         return [self._to_out(d) for d in docs], total
 
+    async def get_next_id(self, counter_name: str):
+        result = await self.counter_collection.find_one_and_update(
+            {"_id": counter_name},
+            {"$inc": {"seq": 1}},
+            upsert=True,
+            return_document=True
+        )
+        return result["seq"]
+
     async def create(self, data: dict) -> int:
-        cursor = self.collection.find().sort("id", -1).limit(1)
-        last = await cursor.to_list(length=1)
-        next_id = (last[0]["id"] + 1) if last else 1
+        next_id = await self.get_next_id("entity_id")
         data["id"] = next_id
-        data.setdefault("created_at", datetime.now(timezone.utc))
+        data.setdefault("created_at", _event_log_now())
         await self.collection.insert_one(data)
         return next_id
 
