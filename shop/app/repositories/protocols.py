@@ -167,3 +167,24 @@ class RefreshTokenRepository(Protocol):
     async def delete(self, token_id: int) -> bool: ...
     async def delete_by_hash(self, token_hash: str) -> list[int]: ...
     async def delete_by_user_id(self, user_id: int) -> list[int]: ...
+
+
+class UnitOfWork(Protocol):
+    async def __aenter__(self) -> UnitOfWork: ...
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None: ...
+    async def commit(self) -> None: ...
+    async def rollback(self) -> None: ...
+
+    categories: CategoryRepository
+    products: ProductRepository
+    users: UserRepository
+    roles: RoleRepository
+    product_specifications: ProductSpecificationRepository
+    product_images: ProductImageRepository
+    carts: CartRepository
+    cart_items: CartItemRepository
+    reviews: ReviewRepository
+    orders: OrderRepository
+    order_items: OrderItemRepository
+    refresh_tokens: RefreshTokenRepository
+
