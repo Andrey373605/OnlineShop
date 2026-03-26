@@ -23,3 +23,9 @@ dependencies = [
     "redis>=5.0.0",
     "motor>=3.7.1",
 ]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "ruff>=0.15.7",
+]
