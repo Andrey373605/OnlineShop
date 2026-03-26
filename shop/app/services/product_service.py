@@ -19,6 +19,7 @@ class ProductService:
         self.uow = uow
         self.cache = cache
         self._cache_ttl_seconds = cache_ttl_seconds
+        self._cache_pattern = "products:limit:*"
 
     async def create_product(self, data: ProductCreate) -> dict:
         async with self.uow as uow:
@@ -30,6 +31,7 @@ class ProductService:
                 raise OperationFailedError("Failed to create product")
             await uow.commit()
 
+        await self.cache.delete_by_pattern(self._cache_pattern)
         return {"id": product_id, "message": "Product created successfully"}
 
     async def get_product_by_id(self, product_id: int) -> ProductOut:
@@ -62,6 +64,7 @@ class ProductService:
                 raise OperationFailedError("Failed to update product")
             await uow.commit()
 
+        await self.cache.delete_by_pattern(self._cache_pattern)
         return ProductResponse(id=product_id, message="Product updated successfully")
 
     async def delete_product(self, product_id: int) -> ProductResponse:
@@ -74,4 +77,5 @@ class ProductService:
                 raise OperationFailedError("Failed to delete product")
             await uow.commit()
 
+        await self.cache.delete_by_pattern(self._cache_pattern)
         return ProductResponse(id=product_id, message="Product deleted successfully")

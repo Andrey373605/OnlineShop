@@ -23,6 +23,7 @@ class UserService:
         self.uow = uow
         self.cache = cache
         self._cache_ttl_seconds = cache_ttl_seconds
+        self._cache_pattern = "users:limit:*"
 
     async def get_user_by_id(self, user_id: int) -> UserOut:
         async with self.uow as uow:
@@ -61,7 +62,9 @@ class UserService:
             if not user:
                 raise OperationFailedError("Unable to fetch created user")
             await uow.commit()
-            return user
+
+        await self.cache.delete_by_pattern(self._cache_pattern)
+        return user
 
     async def update_user(self, user_id: int, payload: UserUpdate) -> UserOut:
         async with self.uow as uow:
@@ -84,6 +87,7 @@ class UserService:
                 raise OperationFailedError("Unable to fetch updated user")
             await uow.commit()
 
+        await self.cache.delete_by_pattern(self._cache_pattern)
         await self.cache.delete_user_session(user_id)
         return user
 
@@ -98,4 +102,5 @@ class UserService:
                 raise OperationFailedError("Failed to delete user")
             await uow.commit()
 
+        await self.cache.delete_by_pattern(self._cache_pattern)
         await self.cache.delete_user_session(user_id)

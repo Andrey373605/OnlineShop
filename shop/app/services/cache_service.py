@@ -45,6 +45,14 @@ class CacheService:
         self._ensure_connected()
         await self.redis_client.delete(key)
 
+    async def delete_by_pattern(self, pattern: str) -> int:
+        self._ensure_connected()
+        deleted = 0
+        async for key in self.redis_client.scan_iter(match=pattern, count=100):
+            await self.redis_client.delete(key)
+            deleted += 1
+        return deleted
+
     async def exists(self, key: str) -> bool:
         self._ensure_connected()
         return bool(await self.redis_client.exists(key))
