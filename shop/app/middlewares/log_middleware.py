@@ -5,21 +5,7 @@ from typing import Awaitable, Callable
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
-from shop.app.core.config import settings
-from shop.app.repositories.event_log_mongo_repository import EventLogRepositoryMongo
-from shop.app.services.event_log_service import EventLogService
-
 log = logging.getLogger(__name__)
-
-
-def _get_event_log_service(request: Request) -> EventLogService:
-    """
-    Создаёт EventLogService из app.state.mongo_client
-    для использования в middleware.
-    """
-    db = request.app.state.mongo_client[settings.MONGODB_DB]
-    repo = EventLogRepositoryMongo(db=db)
-    return EventLogService(repo=repo)
 
 
 async def log_requests(
@@ -31,7 +17,7 @@ async def log_requests(
     # except Exception as exc:
     #     return await global_exception_handler(request, exc)
     try:
-        service = _get_event_log_service(request)
+        service = request.app.state.event_log_service
         db_used = getattr(request.state, "used_db", False)
         await service.log_http_request(
             method=request.method,
@@ -52,7 +38,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     не перехватываются — их обрабатывает FastAPI.
     """
     try:
-        service = _get_event_log_service(request)
+        service = request.app.state.event_log_service
         await service.log_error(
             description=str(exc),
             request=request,

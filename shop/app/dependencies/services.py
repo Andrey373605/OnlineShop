@@ -1,10 +1,9 @@
-from fastapi import Depends
+from fastapi import Depends, Request
 
 from shop.app.core.config import settings
 from shop.app.dependencies.cache import get_cache_service
 from shop.app.dependencies.db import get_uow
-from shop.app.dependencies.repositories import get_event_log_repository
-from shop.app.repositories.protocols import EventLogRepository, UnitOfWork
+from shop.app.repositories.protocols import UnitOfWork
 from shop.app.services.analytics_service import AnalyticsService
 from shop.app.services.auth_service import AuthService
 from shop.app.services.cache_service import CacheService
@@ -111,9 +110,9 @@ async def get_review_service(
 
 
 async def get_event_log_service(
-    event_repo: EventLogRepository = Depends(get_event_log_repository),
+    request: Request,
 ) -> EventLogService:
-    return EventLogService(repo=event_repo)
+    return request.app.state.event_log_service
 
 
 async def get_analytics_service(

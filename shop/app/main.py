@@ -11,7 +11,9 @@ from shop.app.core.mongo_indexes import (
     ensure_event_log_ttl_index,
 )
 from shop.app.middlewares.registration import register_middleware
+from shop.app.repositories.event_log_mongo_repository import EventLogRepositoryMongo
 from shop.app.services.cache_service import CacheService, CacheServiceConfig
+from shop.app.services.event_log_service import EventLogService
 
 APP_VERSION = "1.0.0"
 
@@ -27,8 +29,12 @@ async def lifespan(app: FastAPI):
     mongo_client = AsyncIOMotorClient(settings.MONGO_URL)
     app.state.mongo_client = mongo_client
 
-    await ensure_event_log_ttl_index(mongo_client[settings.MONGODB_DB])
-    await ensure_event_log_search_indexes(mongo_client[settings.MONGODB_DB])
+    db = mongo_client[settings.MONGODB_DB]
+    repo = EventLogRepositoryMongo(db=db)
+    app.state.event_log_service = EventLogService(repo=repo)
+
+    await ensure_event_log_ttl_index(db)
+    await ensure_event_log_search_indexes(db)
 
     yield
 
