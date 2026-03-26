@@ -1,7 +1,4 @@
 from datetime import datetime
-from typing import Optional
-
-from pydantic import EmailStr
 
 from shop.app.schemas.user_schemas import UserDB, UserOut
 
@@ -46,7 +43,7 @@ class UserRepositorySql:
         )
         return bool(result)
 
-    async def update_last_login(self, user_id: int, last_login: datetime) -> bool:
+    async def update_last_login(self, user_id: int, last_login: datetime | None = None) -> bool:
         result = await self.queries.update_last_login(
             self.conn,
             id=user_id,
@@ -65,7 +62,7 @@ class UserRepositorySql:
         )
         return row["exists"]
 
-    async def exists_with_email(self, email: EmailStr) -> bool:
+    async def exists_with_email(self, email: str) -> bool:
         row = await self.queries.check_user_email_exists(
             self.conn,
             email=email,

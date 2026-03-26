@@ -27,7 +27,6 @@ async def lifespan(app: FastAPI):
     mongo_client = AsyncIOMotorClient(settings.MONGO_URL)
     app.state.mongo_client = mongo_client
 
-    # Инициализация TTL-индексов в MongoDB (включая event_log)
     await ensure_event_log_ttl_index(mongo_client[settings.MONGODB_DB])
     await ensure_event_log_search_indexes(mongo_client[settings.MONGODB_DB])
 
