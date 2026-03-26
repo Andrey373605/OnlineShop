@@ -3,7 +3,7 @@ from shop.app.core.exceptions import (
     NotFoundError,
     OperationFailedError,
 )
-from shop.app.repositories.protocols import RoleRepository
+from shop.app.repositories.protocols import UnitOfWork
 from shop.app.schemas.role_schemas import (
     RoleCreate,
     RoleOut,
@@ -18,37 +18,42 @@ ROLES_CACHE_KEY = "roles:all"
 class RoleService:
     def __init__(
         self,
-        role_repo: RoleRepository,
+        uow: UnitOfWork,
         cache: CacheService,
         cache_ttl_seconds: int | None = None,
     ):
-        self.role_repo = role_repo
+        self.uow = uow
         self.cache = cache
         self._cache_ttl_seconds = cache_ttl_seconds
 
     async def create_role(self, data: RoleCreate) -> RoleResponse:
-        if await self.role_repo.exists_with_name(data.name):
-            raise AlreadyExistsError("Role name")
+        async with self.uow as uow:
+            if await uow.roles.exists_with_name(data.name):
+                raise AlreadyExistsError("Role name")
 
-        role_id = await self.role_repo.create(data.name)
-        if not role_id:
-            raise OperationFailedError("Failed to create role")
+            role_id = await uow.roles.create(data.name)
+            if not role_id:
+                raise OperationFailedError("Failed to create role")
+            await uow.commit()
 
         await self._invalidate_roles_cache()
         return RoleResponse(id=role_id, message="Role created successfully")
 
     async def get_role_by_id(self, role_id: int) -> RoleOut:
-        role = await self.role_repo.get_by_id(role_id)
-        if not role:
-            raise NotFoundError("Role")
-        return role
+        async with self.uow as uow:
+            role = await uow.roles.get_by_id(role_id)
+            if not role:
+                raise NotFoundError("Role")
+            return role
 
     async def get_all_roles(self) -> list[RoleOut]:
         if await self.cache.exists(ROLES_CACHE_KEY):
             roles_str = await self.cache.get_list(ROLES_CACHE_KEY)
             return [RoleOut.model_validate_json(s) for s in roles_str]
 
-        roles = await self.role_repo.get_all()
+        async with self.uow as uow:
+            roles = await uow.roles.get_all()
+
         roles_str = [r.model_dump_json() for r in roles]
         await self.cache.set_list_atomic(
             ROLES_CACHE_KEY, roles_str, ttl_seconds=self._cache_ttl_seconds
@@ -56,24 +61,32 @@ class RoleService:
         return roles
 
     async def update_role(self, role_id: int, data: RoleUpdate) -> RoleResponse:
-        await self.get_role_by_id(role_id)
+        async with self.uow as uow:
+            role = await uow.roles.get_by_id(role_id)
+            if not role:
+                raise NotFoundError("Role")
 
-        if await self.role_repo.exists_with_name(data.name):
-            raise AlreadyExistsError("Role name")
+            if await uow.roles.exists_with_name(data.name):
+                raise AlreadyExistsError("Role name")
 
-        success = await self.role_repo.update(role_id, data.name)
-        if not success:
-            raise OperationFailedError("Failed to update role")
+            success = await uow.roles.update(role_id, data.name)
+            if not success:
+                raise OperationFailedError("Failed to update role")
+            await uow.commit()
 
         await self._invalidate_roles_cache()
         return RoleResponse(id=role_id, message="Role updated successfully")
 
     async def delete_role(self, role_id: int) -> RoleResponse:
-        await self.get_role_by_id(role_id)
+        async with self.uow as uow:
+            role = await uow.roles.get_by_id(role_id)
+            if not role:
+                raise NotFoundError("Role")
 
-        success = await self.role_repo.delete(role_id)
-        if not success:
-            raise OperationFailedError("Failed to delete role")
+            success = await uow.roles.delete(role_id)
+            if not success:
+                raise OperationFailedError("Failed to delete role")
+            await uow.commit()
 
         await self._invalidate_roles_cache()
         return RoleResponse(id=role_id, message="Role deleted successfully")

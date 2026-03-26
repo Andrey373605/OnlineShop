@@ -5,24 +5,21 @@ from shop.app.core.exceptions import (
     OperationFailedError,
     PermissionDeniedError,
 )
-from shop.app.repositories.protocols import ProductRepository, ReviewRepository
+from shop.app.repositories.protocols import UnitOfWork
 from shop.app.schemas.review_schemas import ReviewCreate, ReviewOut, ReviewUpdate
 
 
 class ReviewService:
-    def __init__(
-            self,
-            review_repo: ReviewRepository,
-            product_repo: ProductRepository,
-    ) -> None:
-        self.review_repo = review_repo
-        self.product_repo = product_repo
+    def __init__(self, uow: UnitOfWork) -> None:
+        self.uow = uow
 
     async def list_reviews(self, limit: int, offset: int) -> list[ReviewOut]:
-        return await self.review_repo.get_all(limit=limit, offset=offset)
+        async with self.uow as uow:
+            return await uow.reviews.get_all(limit=limit, offset=offset)
 
     async def get_review_by_id(self, review_id: int) -> ReviewOut:
-        return await self._get_review_or_raise(review_id)
+        async with self.uow as uow:
+            return await self._get_review_or_raise(uow, review_id)
 
     async def create_review(
             self,
@@ -30,18 +27,23 @@ class ReviewService:
             data: ReviewCreate,
     ) -> ReviewOut:
         self._validate_rating_value(data.rating)
-        await self._ensure_product_exists(data.product_id)
-        existing = await self.review_repo.get_by_user_and_product(
-            user_id=user_id,
-            product_id=data.product_id,
-        )
-        if existing:
-            raise AlreadyExistsError("Review", "Review for this product already exists")
+        async with self.uow as uow:
+            if not await uow.products.exists_product_with_id(data.product_id):
+                raise NotFoundError("Product")
 
-        payload = data.model_dump()
-        payload["user_id"] = user_id
-        review_id = await self.review_repo.create(payload)
-        return await self._get_review_or_raise(review_id)
+            existing = await uow.reviews.get_by_user_and_product(
+                user_id=user_id,
+                product_id=data.product_id,
+            )
+            if existing:
+                raise AlreadyExistsError("Review", "Review for this product already exists")
+
+            payload = data.model_dump()
+            payload["user_id"] = user_id
+            review_id = await uow.reviews.create(payload)
+            review = await self._get_review_or_raise(uow, review_id)
+            await uow.commit()
+            return review
 
     async def update_review(
             self,
@@ -50,19 +52,23 @@ class ReviewService:
             data: ReviewUpdate,
             is_admin: bool = False,
     ) -> ReviewOut:
-        review = await self._get_review_or_raise(review_id)
-        self._ensure_author_or_admin(review.user_id, user_id, is_admin)
-
         if data.rating is not None:
             self._validate_rating_value(data.rating)
 
-        success = await self.review_repo.update(
-            review_id,
-            data.model_dump(exclude_unset=True),
-        )
-        if not success:
-            raise OperationFailedError("Failed to update review")
-        return await self._get_review_or_raise(review_id)
+        async with self.uow as uow:
+            review = await self._get_review_or_raise(uow, review_id)
+            self._ensure_author_or_admin(review.user_id, user_id, is_admin)
+
+            success = await uow.reviews.update(
+                review_id,
+                data.model_dump(exclude_unset=True),
+            )
+            if not success:
+                raise OperationFailedError("Failed to update review")
+
+            review = await self._get_review_or_raise(uow, review_id)
+            await uow.commit()
+            return review
 
     async def delete_review(
             self,
@@ -70,20 +76,18 @@ class ReviewService:
             user_id: int,
             is_admin: bool = False,
     ) -> None:
-        review = await self._get_review_or_raise(review_id)
-        self._ensure_author_or_admin(review.user_id, user_id, is_admin)
+        async with self.uow as uow:
+            review = await self._get_review_or_raise(uow, review_id)
+            self._ensure_author_or_admin(review.user_id, user_id, is_admin)
 
-        success = await self.review_repo.delete(review_id)
-        if not success:
-            raise OperationFailedError("Failed to delete review")
+            success = await uow.reviews.delete(review_id)
+            if not success:
+                raise OperationFailedError("Failed to delete review")
+            await uow.commit()
 
-    async def _ensure_product_exists(self, product_id: int) -> None:
-        exists = await self.product_repo.exists_product_with_id(product_id)
-        if not exists:
-            raise NotFoundError("Product")
-
-    async def _get_review_or_raise(self, review_id: int) -> ReviewOut:
-        review = await self.review_repo.get_by_id(review_id)
+    @staticmethod
+    async def _get_review_or_raise(uow: UnitOfWork, review_id: int) -> ReviewOut:
+        review = await uow.reviews.get_by_id(review_id)
         if not review:
             raise NotFoundError("Review")
         return review

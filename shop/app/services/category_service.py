@@ -3,7 +3,7 @@ from shop.app.core.exceptions import (
     NotFoundError,
     OperationFailedError,
 )
-from shop.app.repositories.protocols import CategoryRepository
+from shop.app.repositories.protocols import UnitOfWork
 from shop.app.schemas.category_schemas import (
     CategoryCreate,
     CategoryOut,
@@ -18,40 +18,42 @@ CATEGORIES_CACHE_KEY = "categories:all"
 class CategoryService:
     def __init__(
         self,
-        category_repo: CategoryRepository,
+        uow: UnitOfWork,
         cache: CacheService,
         cache_ttl_seconds: int | None = None,
     ):
-        self.category_repo = category_repo
+        self.uow = uow
         self.cache = cache
         self._cache_ttl_seconds = cache_ttl_seconds
 
     async def create_category(self, data: CategoryCreate) -> dict:
-        check_exist = await self._category_name_exists(data.name)
-        if check_exist:
-            raise AlreadyExistsError("Category name")
+        async with self.uow as uow:
+            if await uow.categories.exists_category_with_name(data.name):
+                raise AlreadyExistsError("Category name")
 
-        category_id = await self.category_repo.create(data.model_dump())
-
-        if not category_id:
-            raise OperationFailedError("Failed to create category")
+            category_id = await uow.categories.create(data.model_dump())
+            if not category_id:
+                raise OperationFailedError("Failed to create category")
+            await uow.commit()
 
         await self._invalidate_cache()
         return {"id": category_id, "message": "Category created successfully"}
 
     async def get_category_by_id(self, category_id: int) -> CategoryOut:
-        category = await self.category_repo.get_by_id(category_id)
-
-        if not category:
-            raise NotFoundError("Category")
-
-        return category
+        async with self.uow as uow:
+            category = await uow.categories.get_by_id(category_id)
+            if not category:
+                raise NotFoundError("Category")
+            return category
 
     async def get_all_categories(self) -> list[CategoryOut]:
         if await self.cache.exists(CATEGORIES_CACHE_KEY):
             items_str = await self.cache.get_list(CATEGORIES_CACHE_KEY)
             return [CategoryOut.model_validate_json(s) for s in items_str]
-        categories = await self.category_repo.get_all()
+
+        async with self.uow as uow:
+            categories = await uow.categories.get_all()
+
         items_str = [c.model_dump_json() for c in categories]
         await self.cache.set_list_atomic(
             CATEGORIES_CACHE_KEY, items_str, ttl_seconds=self._cache_ttl_seconds
@@ -59,36 +61,34 @@ class CategoryService:
         return categories
 
     async def update_category(self, category_id: int, data: CategoryUpdate) -> CategoryResponse:
-        check_exist = await self.category_id_exists(category_id)
-        if not check_exist:
-            raise NotFoundError("Category")
+        async with self.uow as uow:
+            if not await uow.categories.exists_category_with_id(category_id):
+                raise NotFoundError("Category")
 
-        success = await self.category_repo.update(category_id, data.model_dump(exclude_unset=True))
-
-        if not success:
-            raise OperationFailedError("Failed to update category")
+            success = await uow.categories.update(category_id, data.model_dump(exclude_unset=True))
+            if not success:
+                raise OperationFailedError("Failed to update category")
+            await uow.commit()
 
         await self._invalidate_cache()
         return CategoryResponse(id=category_id, message="Category updated successfully")
 
     async def delete_category(self, category_id: int) -> CategoryResponse:
-        check_exist = await self.category_id_exists(category_id)
-        if not check_exist:
-            raise NotFoundError("Category")
+        async with self.uow as uow:
+            if not await uow.categories.exists_category_with_id(category_id):
+                raise NotFoundError("Category")
 
-        success = await self.category_repo.delete(category_id)
-
-        if not success:
-            raise OperationFailedError("Failed to delete category")
+            success = await uow.categories.delete(category_id)
+            if not success:
+                raise OperationFailedError("Failed to delete category")
+            await uow.commit()
 
         await self._invalidate_cache()
         return CategoryResponse(id=category_id, message="Category deleted successfully")
 
+    async def category_id_exists(self, category_id: int) -> bool:
+        async with self.uow as uow:
+            return await uow.categories.exists_category_with_id(category_id)
+
     async def _invalidate_cache(self) -> None:
         await self.cache.delete(CATEGORIES_CACHE_KEY)
-
-    async def category_id_exists(self, category_id: int) -> bool:
-        return await self.category_repo.exists_category_with_id(category_id)
-
-    async def _category_name_exists(self, name: str) -> bool:
-        return await self.category_repo.exists_category_with_name(name)

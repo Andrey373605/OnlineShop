@@ -26,10 +26,10 @@ async def log_requests(
     request: Request,
     call_next: Callable[[Request], Awaitable[Response]],
 ) -> Response:
-    try:
-        response = await call_next(request)
-    except Exception as exc:
-        return await global_exception_handler(request, exc)
+    # try:
+    response = await call_next(request)
+    # except Exception as exc:
+    #     return await global_exception_handler(request, exc)
     try:
         service = _get_event_log_service(request)
         db_used = getattr(request.state, "used_db", False)

@@ -1,10 +1,6 @@
 import json
 
-from shop.app.repositories.protocols import (
-    OrderRepository,
-    ProductRepository,
-    UserRepository,
-)
+from shop.app.repositories.protocols import UnitOfWork
 from shop.app.schemas.analytics_schemas import StatsOut
 from shop.app.services.cache_service import CacheService
 
@@ -17,31 +13,24 @@ class AnalyticsService:
 
     def __init__(
         self,
-        order_repo: OrderRepository,
-        user_repo: UserRepository,
-        product_repo: ProductRepository,
+        uow: UnitOfWork,
         cache: CacheService,
         cache_ttl_seconds: int,
     ):
-        self.order_repo = order_repo
-        self.user_repo = user_repo
-        self.product_repo = product_repo
+        self.uow = uow
         self.cache = cache
         self._cache_ttl = cache_ttl_seconds
 
     async def get_stats(self) -> StatsOut:
-        """
-        Возвращает сводную статистику (количество заказов, пользователей, товаров).
-        Результат кэшируется в Redis для снижения нагрузки на БД.
-        """
         cached = await self.cache.get_value(CACHE_KEY_STATS)
         if cached is not None:
             data = json.loads(cached)
             return StatsOut(**data)
 
-        total_orders = await self.order_repo.get_total()
-        total_users = await self.user_repo.get_total()
-        total_products = await self.product_repo.get_total()
+        async with self.uow as uow:
+            total_orders = await uow.orders.get_total()
+            total_users = await uow.users.get_total()
+            total_products = await uow.products.get_total()
 
         stats = StatsOut(
             total_orders=total_orders,
@@ -56,5 +45,4 @@ class AnalyticsService:
         return stats
 
     async def invalidate_stats_cache(self) -> None:
-        """Сбросить кэш аналитики (вызывать при изменении заказов/пользователей/товаров)."""
         await self.cache.delete(CACHE_KEY_STATS)

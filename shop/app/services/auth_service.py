@@ -17,11 +17,7 @@ from shop.app.core.security import (
     verify_password,
 )
 from shop.app.core.config import settings
-from shop.app.repositories.protocols import (
-    RefreshTokenRepository,
-    RoleRepository,
-    UserRepository,
-)
+from shop.app.repositories.protocols import UnitOfWork
 from shop.app.services.cache_service import CacheService
 from shop.app.schemas.auth_schemas import (
     AuthResponse,
@@ -38,36 +34,33 @@ from shop.app.schemas.user_schemas import UserOut
 
 
 class AuthService:
-    def __init__(
-        self,
-        user_repo: UserRepository,
-        refresh_repo: RefreshTokenRepository,
-        role_repo: RoleRepository,
-        cache: CacheService,
-    ):
-        self.user_repo = user_repo
-        self.refresh_repo = refresh_repo
-        self.role_repo = role_repo
+    def __init__(self, uow: UnitOfWork, cache: CacheService):
+        self.uow = uow
         self.cache = cache
 
     # ---------- Public API ----------
 
     async def register(self, payload: RegisterRequest) -> RegisterResponse:
-        await self._ensure_unique_credentials(payload.username, payload.email)
-        await self._ensure_default_role_exists()
-        user = await self._create_user_with_default_role(payload)
+        async with self.uow as uow:
+            await self._ensure_unique_credentials(uow, payload.username, payload.email)
+            await self._ensure_default_role_exists(uow)
+            user = await self._create_user_with_default_role(uow, payload)
+            await uow.commit()
         return RegisterResponse(
             message="Registration successful",
             user=self._to_auth_user(user),
         )
 
     async def login(self, payload: LoginRequest) -> AuthResponse:
-        user = await self._authenticate_user(payload)
-        await self.cache.reset_failed_attempts(payload.username)
-        self._ensure_user_active(user)
+        async with self.uow as uow:
+            user = await self._authenticate_user(uow, payload)
+            await self.cache.reset_failed_attempts(payload.username)
+            self._ensure_user_active(user)
 
-        safe_user = await self._reload_user(user.id)
-        tokens = await self._issue_tokens(safe_user)
+            safe_user = await self._reload_user(uow, user.id)
+            tokens = await self._issue_tokens(uow, safe_user)
+            await uow.commit()
+
         await self.cache.set_user_session(
             safe_user.id,
             safe_user.model_dump_json(),
@@ -78,13 +71,16 @@ class AuthService:
     async def refresh(self, payload: RefreshRequest) -> RefreshResponse:
         token_data = self._decode_and_validate_refresh_token(payload.refresh_token)
 
-        token_hash = hash_token(payload.refresh_token)
-        stored_token = await self._get_refresh_session_or_unauthorized(token_hash)
+        async with self.uow as uow:
+            token_hash = hash_token(payload.refresh_token)
+            stored_token = await self._get_refresh_session_or_unauthorized(uow, token_hash)
 
-        user = await self._get_user_for_refresh(stored_token.user_id, token_data)
-        await self.refresh_repo.delete(stored_token.id)
+            user = await self._get_user_for_refresh(uow, stored_token.user_id, token_data)
+            await uow.refresh_tokens.delete(stored_token.id)
 
-        tokens = await self._issue_tokens(user)
+            tokens = await self._issue_tokens(uow, user)
+            await uow.commit()
+
         await self.cache.set_user_session(
             user.id,
             user.model_dump_json(),
@@ -93,24 +89,27 @@ class AuthService:
         return RefreshResponse(**tokens.model_dump())
 
     async def logout(self, payload: LogoutRequest) -> None:
-        token_hash = hash_token(payload.refresh_token)
-        rows = await self.refresh_repo.delete_by_hash(token_hash)
-        if not rows:
-            stored = await self.refresh_repo.get_by_hash(token_hash)
-            if stored:
-                await self.refresh_repo.delete(stored.id)
+        async with self.uow as uow:
+            token_hash = hash_token(payload.refresh_token)
+            rows = await uow.refresh_tokens.delete_by_hash(token_hash)
+            if not rows:
+                stored = await uow.refresh_tokens.get_by_hash(token_hash)
+                if stored:
+                    await uow.refresh_tokens.delete(stored.id)
+            await uow.commit()
 
     # ---------- Internal helpers ----------
 
-    async def _ensure_unique_credentials(self, username: str, email: str) -> None:
-        if await self.user_repo.exists_with_username(username):
+    @staticmethod
+    async def _ensure_unique_credentials(uow: UnitOfWork, username: str, email: str) -> None:
+        if await uow.users.exists_with_username(username):
             raise AlreadyExistsError("Username")
-
-        if await self.user_repo.exists_with_email(email):
+        if await uow.users.exists_with_email(email):
             raise AlreadyExistsError("Email")
 
-    async def _ensure_default_role_exists(self) -> None:
-        default_role = await self.role_repo.get_by_id(settings.DEFAULT_USER_ROLE_ID)
+    @staticmethod
+    async def _ensure_default_role_exists(uow: UnitOfWork) -> None:
+        default_role = await uow.roles.get_by_id(settings.DEFAULT_USER_ROLE_ID)
         if not default_role:
             raise ServiceUnavailableError(
                 f"Registration is temporarily unavailable: default user role "
@@ -118,11 +117,12 @@ class AuthService:
                 "Please contact the administrator."
             )
 
+    @staticmethod
     async def _create_user_with_default_role(
-        self,
+        uow: UnitOfWork,
         payload: RegisterRequest,
     ) -> UserOut:
-        user_id = await self.user_repo.create(
+        user_id = await uow.users.create(
             {
                 "username": payload.username,
                 "email": payload.email,
@@ -130,22 +130,22 @@ class AuthService:
                 "full_name": payload.full_name,
                 "is_active": True,
                 "role": settings.DEFAULT_USER_ROLE_ID,
-                "last_login": datetime.now(timezone.utc),
+                "last_login": datetime.now(timezone.utc).replace(tzinfo=None),
             }
         )
-        user = await self.user_repo.get_by_id(user_id)
+        user = await uow.users.get_by_id(user_id)
         if not user:
             raise OperationFailedError("Unable to fetch created user")
         return user
 
-    async def _authenticate_user(self, payload: LoginRequest) -> UserOut:
+    async def _authenticate_user(self, uow: UnitOfWork, payload: LoginRequest) -> UserOut:
         if await self.cache.is_blacklisted(payload.username):
             raise PermissionDeniedError(
                 "Account temporarily blocked due to too many failed login "
                 f"attempts. Please try again in {settings.BLOCK_TIME_MINUTES} minutes."
             )
 
-        user = await self.user_repo.get_by_username(payload.username)
+        user = await uow.users.get_by_username(payload.username)
         if not user or not verify_password(payload.password, user.password_hash):
             await self._handle_failed_attempt(payload.username)
             raise AuthenticationError("Incorrect username or password")
@@ -157,17 +157,19 @@ class AuthService:
         if not user.is_active:
             raise PermissionDeniedError("User is disabled")
 
-    async def _reload_user(self, user_id: int) -> UserOut:
-        await self.user_repo.update_last_login(
+    @staticmethod
+    async def _reload_user(uow: UnitOfWork, user_id: int) -> UserOut:
+        await uow.users.update_last_login(
             user_id=user_id,
-            last_login=datetime.now(timezone.utc),
+            last_login=datetime.now(timezone.utc).replace(tzinfo=None),
         )
-        user = await self.user_repo.get_by_id(user_id)
+        user = await uow.users.get_by_id(user_id)
         if not user:
             raise OperationFailedError("User not found")
         return user
 
-    def _decode_and_validate_refresh_token(self, refresh_token: str) -> dict:
+    @staticmethod
+    def _decode_and_validate_refresh_token(refresh_token: str) -> dict:
         try:
             token_data = decode_token(refresh_token)
         except Exception:
@@ -178,18 +180,20 @@ class AuthService:
 
         return token_data
 
-    async def _get_refresh_session_or_unauthorized(self, token_hash: str):
-        stored_token = await self.refresh_repo.get_by_hash(token_hash)
+    @staticmethod
+    async def _get_refresh_session_or_unauthorized(uow: UnitOfWork, token_hash: str):
+        stored_token = await uow.refresh_tokens.get_by_hash(token_hash)
         if not stored_token:
             raise AuthenticationError("Refresh token revoked")
         return stored_token
 
-    async def _get_user_for_refresh(self, user_id: int, token_data: dict) -> UserOut:
+    @staticmethod
+    async def _get_user_for_refresh(uow: UnitOfWork, user_id: int, token_data: dict) -> UserOut:
         token_user_id = int(token_data.get("sub"))
         if user_id != token_user_id:
             raise AuthenticationError("Refresh token mismatch")
 
-        user = await self.user_repo.get_by_id(user_id)
+        user = await uow.users.get_by_id(user_id)
         if not user:
             raise NotFoundError("User")
         return user
@@ -213,7 +217,8 @@ class AuthService:
             role_name=user.role_name,
         )
 
-    async def _issue_tokens(self, user: UserOut) -> TokenPair:
+    @staticmethod
+    async def _issue_tokens(uow: UnitOfWork, user: UserOut) -> TokenPair:
         access_token = create_access_token(
             subject=str(user.id),
             extra_data={"username": user.username},
@@ -223,23 +228,20 @@ class AuthService:
             extra_data={"username": user.username},
         )
 
-        await self._store_refresh_token(user.id, refresh_token)
+        expires_at = (datetime.now(timezone.utc) + timedelta(
+            days=settings.REFRESH_TOKEN_EXPIRE_DAYS
+        )).replace(tzinfo=None)
+        await uow.refresh_tokens.create(
+            {
+                "user_id": user.id,
+                "token_hash": hash_token(refresh_token),
+                "expires_at": expires_at,
+            }
+        )
 
         return TokenPair(
             access_token=access_token,
             refresh_token=refresh_token,
             access_token_expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             refresh_token_expires_in=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        )
-
-    async def _store_refresh_token(self, user_id: int, refresh_token: str) -> None:
-        expires_at = datetime.now(timezone.utc) + timedelta(
-            days=settings.REFRESH_TOKEN_EXPIRE_DAYS
-        )
-        await self.refresh_repo.create(
-            {
-                "user_id": user_id,
-                "token_hash": hash_token(refresh_token),
-                "expires_at": expires_at,
-            }
         )

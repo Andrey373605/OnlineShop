@@ -26,19 +26,20 @@ class SqlUnitOfWork(UnitOfWork):
         self._conn: Connection = await self._pool.acquire()
         self._tx: Transaction = self._conn.transaction()
         await self._tx.start()
+        self._committed = False
         self._init_repositories()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        if exc_type is not None:
-            await self._tx.rollback()
         try:
+            if not self._committed:
+                await self._tx.rollback()
+        finally:
             await self._pool.release(self._conn)
-        except Exception:
-            pass
 
     async def commit(self) -> None:
         await self._tx.commit()
+        self._committed = True
 
     async def rollback(self) -> None:
         await self._tx.rollback()

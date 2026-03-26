@@ -3,10 +3,7 @@ from shop.app.core.exceptions import (
     NotFoundError,
     OperationFailedError,
 )
-from shop.app.repositories.protocols import (
-    ProductImageRepository,
-    ProductRepository,
-)
+from shop.app.repositories.protocols import UnitOfWork
 from shop.app.schemas.product_image_schemas import (
     ProductImageCreate,
     ProductImageOut,
@@ -17,20 +14,17 @@ from shop.app.schemas.product_image_schemas import (
 
 
 class ProductImageService:
-    def __init__(
-            self,
-            image_repo: ProductImageRepository,
-            product_repo: ProductRepository,
-    ):
-        self.image_repo = image_repo
-        self.product_repo = product_repo
+    def __init__(self, uow: UnitOfWork):
+        self.uow = uow
 
     async def create_image(self, data: ProductImageCreate) -> ProductImageResponse:
-        await self._ensure_product_exists(data.product_id)
+        async with self.uow as uow:
+            await self._ensure_product_exists(uow, data.product_id)
 
-        image_id = await self.image_repo.create(data.model_dump())
-        if not image_id:
-            raise OperationFailedError("Failed to create product image")
+            image_id = await uow.product_images.create(data.model_dump())
+            if not image_id:
+                raise OperationFailedError("Failed to create product image")
+            await uow.commit()
 
         return ProductImageResponse(
             id=image_id,
@@ -38,29 +32,33 @@ class ProductImageService:
         )
 
     async def get_image_by_id(self, image_id: int) -> ProductImageOut:
-        return await self._get_image_or_raise(image_id)
+        async with self.uow as uow:
+            return await self._get_image_or_raise(uow, image_id)
 
     async def get_images_by_product_id(self, product_id: int) -> list[ProductImageOut]:
-        await self._ensure_product_exists(product_id)
-        return await self.image_repo.get_by_product_id(product_id)
+        async with self.uow as uow:
+            await self._ensure_product_exists(uow, product_id)
+            return await uow.product_images.get_by_product_id(product_id)
 
     async def update_image(
             self,
             image_id: int,
             data: ProductImageUpdate,
     ) -> ProductImageResponse:
-        existing_image = await self._get_image_or_raise(image_id)
+        async with self.uow as uow:
+            existing_image = await self._get_image_or_raise(uow, image_id)
 
-        payload = data.model_dump(exclude_unset=True)
-        if not payload:
-            raise DomainValidationError("No data provided to update product image")
+            payload = data.model_dump(exclude_unset=True)
+            if not payload:
+                raise DomainValidationError("No data provided to update product image")
 
-        if "product_id" in payload:
-            await self._ensure_product_exists(payload["product_id"])
+            if "product_id" in payload:
+                await self._ensure_product_exists(uow, payload["product_id"])
 
-        success = await self.image_repo.update(image_id, payload)
-        if not success:
-            raise OperationFailedError("Failed to update product image")
+            success = await uow.product_images.update(image_id, payload)
+            if not success:
+                raise OperationFailedError("Failed to update product image")
+            await uow.commit()
 
         return ProductImageResponse(
             id=existing_image.id,
@@ -68,11 +66,13 @@ class ProductImageService:
         )
 
     async def delete_image(self, image_id: int) -> ProductImageResponse:
-        await self._get_image_or_raise(image_id)
+        async with self.uow as uow:
+            await self._get_image_or_raise(uow, image_id)
 
-        success = await self.image_repo.delete(image_id)
-        if not success:
-            raise OperationFailedError("Failed to delete product image")
+            success = await uow.product_images.delete(image_id)
+            if not success:
+                raise OperationFailedError("Failed to delete product image")
+            await uow.commit()
 
         return ProductImageResponse(
             id=image_id,
@@ -83,21 +83,25 @@ class ProductImageService:
             self,
             product_id: int,
     ) -> ProductImagesDeleteResponse:
-        await self._ensure_product_exists(product_id)
-        deleted_ids = await self.image_repo.delete_by_product_id(product_id)
+        async with self.uow as uow:
+            await self._ensure_product_exists(uow, product_id)
+            deleted_ids = await uow.product_images.delete_by_product_id(product_id)
+            await uow.commit()
 
         return ProductImagesDeleteResponse(
             product_id=product_id,
             deleted_ids=deleted_ids,
         )
 
-    async def _get_image_or_raise(self, image_id: int) -> ProductImageOut:
-        image = await self.image_repo.get_by_id(image_id)
+    @staticmethod
+    async def _get_image_or_raise(uow: UnitOfWork, image_id: int) -> ProductImageOut:
+        image = await uow.product_images.get_by_id(image_id)
         if not image:
             raise NotFoundError("Product image")
         return image
 
-    async def _ensure_product_exists(self, product_id: int) -> None:
-        exists = await self.product_repo.exists_product_with_id(product_id)
+    @staticmethod
+    async def _ensure_product_exists(uow: UnitOfWork, product_id: int) -> None:
+        exists = await uow.products.exists_product_with_id(product_id)
         if not exists:
             raise NotFoundError("Product")
