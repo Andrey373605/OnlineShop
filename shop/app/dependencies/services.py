@@ -1,14 +1,18 @@
-from fastapi import Depends, Request
+from fastapi import Depends
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from shop.app.core.config import settings
 from shop.app.dependencies.cache import get_cache_service
 from shop.app.dependencies.db import get_uow
+from shop.app.dependencies.mongo import get_mongo_db
+from shop.app.repositories.event_log_analytics_repository import EventLogAnalyticsRepositoryMongo
+from shop.app.repositories.event_log_mongo_repository import EventLogRepositoryMongo
 from shop.app.repositories.protocols import UnitOfWork
-from shop.app.services.analytics_service import AnalyticsService
 from shop.app.services.auth_service import AuthService
 from shop.app.services.cache_service import CacheService
 from shop.app.services.cart_service import CartService
 from shop.app.services.category_service import CategoryService
+from shop.app.services.event_log_analytics_service import EventLogAnalyticsService
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.order_item_service import OrderItemService
 from shop.app.services.order_service import OrderService
@@ -110,17 +114,12 @@ async def get_review_service(
 
 
 async def get_event_log_service(
-    request: Request,
+    db: AsyncIOMotorDatabase = Depends(get_mongo_db),
 ) -> EventLogService:
-    return request.app.state.event_log_service
+    return EventLogService(repo=EventLogRepositoryMongo(db=db))
 
 
-async def get_analytics_service(
-    uow: UnitOfWork = Depends(get_uow),
-    cache: CacheService = Depends(get_cache_service),
-) -> AnalyticsService:
-    return AnalyticsService(
-        uow=uow,
-        cache=cache,
-        cache_ttl_seconds=settings.ANALYTICS_CACHE_TTL_SECONDS,
-    )
+async def get_event_log_analytics_service(
+    db: AsyncIOMotorDatabase = Depends(get_mongo_db),
+) -> EventLogAnalyticsService:
+    return EventLogAnalyticsService(repo=EventLogAnalyticsRepositoryMongo(db=db))
