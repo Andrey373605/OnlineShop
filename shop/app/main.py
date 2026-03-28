@@ -1,19 +1,18 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from motor.motor_asyncio import AsyncIOMotorClient
+
 from shop.app.api.v1.router import get_api_router
+from shop.app.core.cache import create_cache_service
 from shop.app.core.config import settings
 from shop.app.core.db import create_db_pool, close_db_pool
 from shop.app.core.exception_handlers import register_exception_handlers
+from shop.app.core.mongo import create_mongo_client, get_mongo_database, close_mongo_client
 from shop.app.core.mongo_indexes import (
     ensure_event_log_search_indexes,
     ensure_event_log_ttl_index,
 )
 from shop.app.middlewares.registration import register_middleware
-from shop.app.repositories.event_log_mongo_repository import EventLogRepositoryMongo
-from shop.app.services.cache_service import CacheService, CacheServiceConfig
-from shop.app.services.event_log_service import EventLogService
 
 APP_VERSION = "1.0.0"
 
@@ -21,25 +20,19 @@ APP_VERSION = "1.0.0"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.db_pool = await create_db_pool()
+    app.state.cache_service = await create_cache_service()
 
-    cache = CacheService(CacheServiceConfig.from_settings(settings))
-    await cache.connect()
-    app.state.cache_service = cache
-
-    mongo_client = AsyncIOMotorClient(settings.MONGO_URL)
+    mongo_client = create_mongo_client()
     app.state.mongo_client = mongo_client
+    app.state.mongo_db = get_mongo_database(mongo_client)
 
-    db = mongo_client[settings.MONGODB_DB]
-    repo = EventLogRepositoryMongo(db=db)
-    app.state.event_log_service = EventLogService(repo=repo)
-
-    await ensure_event_log_ttl_index(db)
-    await ensure_event_log_search_indexes(db)
+    await ensure_event_log_ttl_index(app.state.mongo_db)
+    await ensure_event_log_search_indexes(app.state.mongo_db)
 
     yield
 
-    mongo_client.close()
-    await cache.disconnect()
+    close_mongo_client(mongo_client)
+    await app.state.cache_service.disconnect()
     await close_db_pool(app.state.db_pool)
 
 
