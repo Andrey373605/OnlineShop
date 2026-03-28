@@ -33,4 +33,3 @@ def get_api_router() -> APIRouter:
     router.include_router(reviews.router)
 
     return router
-
