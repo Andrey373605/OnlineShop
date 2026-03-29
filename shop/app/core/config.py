@@ -1,10 +1,18 @@
+from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import ConfigDict, field_validator
 from pydantic_settings import BaseSettings
 
 
+def _default_instance_id() -> str:
+    return uuid4().hex[:12]
+
+
 class Settings(BaseSettings):
+    # Instance identification (auto-generated per process when not set)
+    INSTANCE_ID: str = ""
+
     # Database settings
     POSTGRES_DB: str
     POSTGRES_USER: str
@@ -83,9 +91,12 @@ class Settings(BaseSettings):
     model_config = ConfigDict(
         env_file=".env",
         case_sensitive=True,
-        extra="ignore"
+        extra="ignore",
     )
 
 
 # Глобальный экземпляр настроек
 settings = Settings()
+
+if not settings.INSTANCE_ID:
+    settings.INSTANCE_ID = _default_instance_id()
