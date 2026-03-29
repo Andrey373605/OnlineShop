@@ -1,4 +1,25 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      POSTGRES_HOST: database
+      REDIS_HOST: redis
+      MONGODB_HOST: mongodb
+    expose:
+      - "8000"
+    deploy:
+      mode: replicated
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      - database
+      - redis
+      - mongodb
+
   database:
     image: postgres:15-alpine
     environment:
@@ -25,28 +46,28 @@ services:
     volumes:
       - redis_data:/data
 
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    environment:
-      - REDIS_HOSTS=local:redis:6379
-    ports:
-      - "${REDIS_COMMANDER_PORT:-8081}:8081"
-    depends_on:
-      - redis
-
   mongodb:
     image: mongo:latest
-    container_name: mongodb
     environment:
 
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
     volumes:
-      - ./database:/data/db
+      - mongodb_data:/data/db
     ports:
       - "${MONGODB_PORT:-27017}:27017"
     restart: unless-stopped
 
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+    depends_on:
+      - app
+
 volumes:
   postgres_data:
   redis_data:
+  mongodb_data:
