@@ -1,81 +1,37 @@
-from contextlib import asynccontextmanager
+import logging
 
 from fastapi import FastAPI
 
+from shop.app.api.health import router as health_router
 from shop.app.api.v1.router import get_api_router
-from shop.app.core.cache import create_cache_service
 from shop.app.core.config import settings
-from shop.app.core.db import create_db_pool, close_db_pool
 from shop.app.core.exception_handlers import register_exception_handlers
-from shop.app.core.mongo import create_mongo_client, get_mongo_database, close_mongo_client
-from shop.app.core.mongo_indexes import (
-    ensure_event_log_search_indexes,
-    ensure_event_log_ttl_index,
-)
+from shop.app.core.lifespan import lifespan
 from shop.app.middlewares.registration import register_middleware
 
-APP_VERSION = "1.0.0"
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    app.state.db_pool = await create_db_pool()
-    app.state.cache_service = await create_cache_service()
-
-    mongo_client = create_mongo_client()
-    app.state.mongo_client = mongo_client
-    app.state.mongo_db = get_mongo_database(mongo_client)
-
-    await ensure_event_log_ttl_index(app.state.mongo_db)
-    await ensure_event_log_search_indexes(app.state.mongo_db)
-
-    yield
-
-    close_mongo_client(mongo_client)
-    await app.state.cache_service.disconnect()
-    await close_db_pool(app.state.db_pool)
+logging.basicConfig(level=logging.INFO)
 
 
 def create_app() -> FastAPI:
     new_app = FastAPI(
         title="Products API with Service Layer and aiosql",
         description="API для управления продуктами и категориями",
-        version=APP_VERSION,
+        version="1.0.0",
         debug=settings.DEBUG,
         lifespan=lifespan,
     )
     register_exception_handlers(new_app)
     register_middleware(new_app)
+    new_app.include_router(health_router)
     new_app.include_router(get_api_router())
     return new_app
 
 
 app = create_app()
 
-
-@app.get("/")
-async def root():
-    return {
-        "message": "Products API",
-        "version": APP_VERSION,
-        "docs": "/docs",
-    }
-
-
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "debug": settings.DEBUG,
-        "database": "connected",
-    }
-
-
 if __name__ == "__main__":
-    import logging
     import uvicorn
 
-    logging.basicConfig(level=logging.INFO)
     uvicorn.run(
         "shop.app.main:app",
         host=settings.APP_HOST,
