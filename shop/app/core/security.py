@@ -31,8 +31,14 @@ def _create_token(
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def create_access_token(subject: str, extra_data: Optional[dict[str, Any]] = None) -> str:
+def create_access_token(
+    subject: str,
+    extra_data: Optional[dict[str, Any]] = None,
+    session_id: Optional[str] = None,
+) -> str:
     data = {"sub": subject}
+    if session_id:
+        data["sid"] = session_id
     if extra_data:
         data.update(extra_data)
     expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)

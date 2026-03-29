@@ -11,6 +11,7 @@ from shop.app.schemas.role_schemas import (
     RoleUpdate,
 )
 from shop.app.services.cache_service import CacheService
+from shop.app.services.pubsub_service import PubSubChannel, PubSubService
 
 ROLES_CACHE_KEY = "roles:all"
 
@@ -20,10 +21,12 @@ class RoleService:
         self,
         uow: UnitOfWork,
         cache: CacheService,
+        pubsub: PubSubService,
         cache_ttl_seconds: int | None = None,
     ):
         self.uow = uow
         self.cache = cache
+        self.pubsub = pubsub
         self._cache_ttl_seconds = cache_ttl_seconds
 
     async def create_role(self, data: RoleCreate) -> RoleResponse:
@@ -37,6 +40,16 @@ class RoleService:
             await uow.commit()
 
         await self._invalidate_roles_cache()
+        await self.pubsub.publish(
+            PubSubChannel.CACHE_INVALIDATION,
+            event="cache_invalidated",
+            data={"entity": "roles", "key": ROLES_CACHE_KEY},
+        )
+        await self.pubsub.publish(
+            PubSubChannel.DATA_CHANGE,
+            event="data_changed",
+            data={"entity": "roles", "action": "create", "entity_id": role_id},
+        )
         return RoleResponse(id=role_id, message="Role created successfully")
 
     async def get_role_by_id(self, role_id: int) -> RoleOut:
@@ -75,6 +88,16 @@ class RoleService:
             await uow.commit()
 
         await self._invalidate_roles_cache()
+        await self.pubsub.publish(
+            PubSubChannel.CACHE_INVALIDATION,
+            event="cache_invalidated",
+            data={"entity": "roles", "key": ROLES_CACHE_KEY},
+        )
+        await self.pubsub.publish(
+            PubSubChannel.DATA_CHANGE,
+            event="data_changed",
+            data={"entity": "roles", "action": "update", "entity_id": role_id},
+        )
         return RoleResponse(id=role_id, message="Role updated successfully")
 
     async def delete_role(self, role_id: int) -> RoleResponse:
@@ -89,6 +112,16 @@ class RoleService:
             await uow.commit()
 
         await self._invalidate_roles_cache()
+        await self.pubsub.publish(
+            PubSubChannel.CACHE_INVALIDATION,
+            event="cache_invalidated",
+            data={"entity": "roles", "key": ROLES_CACHE_KEY},
+        )
+        await self.pubsub.publish(
+            PubSubChannel.DATA_CHANGE,
+            event="data_changed",
+            data={"entity": "roles", "action": "delete", "entity_id": role_id},
+        )
         return RoleResponse(id=role_id, message="Role deleted successfully")
 
     async def _invalidate_roles_cache(self) -> None:

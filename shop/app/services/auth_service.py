@@ -19,6 +19,7 @@ from shop.app.core.security import (
 from shop.app.core.config import settings
 from shop.app.repositories.protocols import UnitOfWork
 from shop.app.services.cache_service import CacheService
+from shop.app.services.session_service import SessionService
 from shop.app.schemas.auth_schemas import (
     AuthResponse,
     AuthUserOut,
@@ -34,9 +35,15 @@ from shop.app.schemas.user_schemas import UserOut
 
 
 class AuthService:
-    def __init__(self, uow: UnitOfWork, cache: CacheService):
+    def __init__(
+        self,
+        uow: UnitOfWork,
+        cache: CacheService,
+        session_service: SessionService,
+    ):
         self.uow = uow
         self.cache = cache
+        self.session_service = session_service
 
     # ---------- Public API ----------
 
@@ -51,21 +58,24 @@ class AuthService:
             user=self._to_auth_user(user),
         )
 
-    async def login(self, payload: LoginRequest) -> AuthResponse:
+    async def login(
+        self,
+        payload: LoginRequest,
+        ip_address: str = "",
+        user_agent: str = "",
+    ) -> AuthResponse:
         async with self.uow as uow:
             user = await self._authenticate_user(uow, payload)
             await self.cache.reset_failed_attempts(payload.username)
             self._ensure_user_active(user)
 
             safe_user = await self._reload_user(uow, user.id)
-            tokens = await self._issue_tokens(uow, safe_user)
+            session_id = await self.session_service.create_session(
+                safe_user, ip_address=ip_address, user_agent=user_agent,
+            )
+            tokens = await self._issue_tokens(uow, safe_user, session_id=session_id)
             await uow.commit()
 
-        await self.cache.set_user_session(
-            safe_user.id,
-            safe_user.model_dump_json(),
-            settings.USER_SESSION_CACHE_TTL_SECONDS,
-        )
         return AuthResponse(user=self._to_auth_user(safe_user), tokens=tokens)
 
     async def refresh(self, payload: RefreshRequest) -> RefreshResponse:
@@ -78,17 +88,17 @@ class AuthService:
             user = await self._get_user_for_refresh(uow, stored_token.user_id, token_data)
             await uow.refresh_tokens.delete(stored_token.id)
 
-            tokens = await self._issue_tokens(uow, user)
+            old_session_id = token_data.get("sid")
+            if old_session_id:
+                await self.session_service.delete_session(old_session_id)
+
+            session_id = await self.session_service.create_session(user)
+            tokens = await self._issue_tokens(uow, user, session_id=session_id)
             await uow.commit()
 
-        await self.cache.set_user_session(
-            user.id,
-            user.model_dump_json(),
-            settings.USER_SESSION_CACHE_TTL_SECONDS,
-        )
         return RefreshResponse(**tokens.model_dump())
 
-    async def logout(self, payload: LogoutRequest) -> None:
+    async def logout(self, payload: LogoutRequest, session_id: str | None = None) -> None:
         async with self.uow as uow:
             token_hash = hash_token(payload.refresh_token)
             rows = await uow.refresh_tokens.delete_by_hash(token_hash)
@@ -97,6 +107,9 @@ class AuthService:
                 if stored:
                     await uow.refresh_tokens.delete(stored.id)
             await uow.commit()
+
+        if session_id:
+            await self.session_service.delete_session(session_id)
 
     # ---------- Internal helpers ----------
 
@@ -218,14 +231,19 @@ class AuthService:
         )
 
     @staticmethod
-    async def _issue_tokens(uow: UnitOfWork, user: UserOut) -> TokenPair:
+    async def _issue_tokens(
+        uow: UnitOfWork,
+        user: UserOut,
+        session_id: str | None = None,
+    ) -> TokenPair:
         access_token = create_access_token(
             subject=str(user.id),
             extra_data={"username": user.username},
+            session_id=session_id,
         )
         refresh_token = create_refresh_token(
             subject=str(user.id),
-            extra_data={"username": user.username},
+            extra_data={"username": user.username, "sid": session_id},
         )
 
         expires_at = (datetime.now(timezone.utc) + timedelta(

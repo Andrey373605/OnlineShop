@@ -11,6 +11,7 @@ from shop.app.schemas.category_schemas import (
     CategoryUpdate,
 )
 from shop.app.services.cache_service import CacheService
+from shop.app.services.pubsub_service import PubSubChannel, PubSubService
 
 CATEGORIES_CACHE_KEY = "categories:all"
 
@@ -20,10 +21,12 @@ class CategoryService:
         self,
         uow: UnitOfWork,
         cache: CacheService,
+        pubsub: PubSubService,
         cache_ttl_seconds: int | None = None,
     ):
         self.uow = uow
         self.cache = cache
+        self.pubsub = pubsub
         self._cache_ttl_seconds = cache_ttl_seconds
 
     async def create_category(self, data: CategoryCreate) -> dict:
@@ -37,6 +40,16 @@ class CategoryService:
             await uow.commit()
 
         await self._invalidate_cache()
+        await self.pubsub.publish(
+            PubSubChannel.CACHE_INVALIDATION,
+            event="cache_invalidated",
+            data={"entity": "categories", "key": CATEGORIES_CACHE_KEY},
+        )
+        await self.pubsub.publish(
+            PubSubChannel.DATA_CHANGE,
+            event="data_changed",
+            data={"entity": "categories", "action": "create", "entity_id": category_id},
+        )
         return {"id": category_id, "message": "Category created successfully"}
 
     async def get_category_by_id(self, category_id: int) -> CategoryOut:
@@ -71,6 +84,16 @@ class CategoryService:
             await uow.commit()
 
         await self._invalidate_cache()
+        await self.pubsub.publish(
+            PubSubChannel.CACHE_INVALIDATION,
+            event="cache_invalidated",
+            data={"entity": "categories", "key": CATEGORIES_CACHE_KEY},
+        )
+        await self.pubsub.publish(
+            PubSubChannel.DATA_CHANGE,
+            event="data_changed",
+            data={"entity": "categories", "action": "update", "entity_id": category_id},
+        )
         return CategoryResponse(id=category_id, message="Category updated successfully")
 
     async def delete_category(self, category_id: int) -> CategoryResponse:
@@ -84,6 +107,16 @@ class CategoryService:
             await uow.commit()
 
         await self._invalidate_cache()
+        await self.pubsub.publish(
+            PubSubChannel.CACHE_INVALIDATION,
+            event="cache_invalidated",
+            data={"entity": "categories", "key": CATEGORIES_CACHE_KEY},
+        )
+        await self.pubsub.publish(
+            PubSubChannel.DATA_CHANGE,
+            event="data_changed",
+            data={"entity": "categories", "action": "delete", "entity_id": category_id},
+        )
         return CategoryResponse(id=category_id, message="Category deleted successfully")
 
     async def category_id_exists(self, category_id: int) -> bool:

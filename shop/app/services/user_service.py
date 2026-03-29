@@ -11,6 +11,8 @@ from shop.app.schemas.user_schemas import (
     UserUpdate,
 )
 from shop.app.services.cache_service import CacheService
+from shop.app.services.pubsub_service import PubSubChannel, PubSubService
+from shop.app.services.session_service import SessionService
 
 
 class UserService:
@@ -18,10 +20,14 @@ class UserService:
         self,
         uow: UnitOfWork,
         cache: CacheService,
+        pubsub: PubSubService,
+        session_service: SessionService,
         cache_ttl_seconds: int | None = None,
     ):
         self.uow = uow
         self.cache = cache
+        self.pubsub = pubsub
+        self.session_service = session_service
         self._cache_ttl_seconds = cache_ttl_seconds
         self._cache_pattern = "users:limit:*"
 
@@ -64,6 +70,16 @@ class UserService:
             await uow.commit()
 
         await self.cache.delete_by_pattern(self._cache_pattern)
+        await self.pubsub.publish(
+            PubSubChannel.CACHE_INVALIDATION,
+            event="cache_invalidated",
+            data={"entity": "users", "pattern": self._cache_pattern},
+        )
+        await self.pubsub.publish(
+            PubSubChannel.DATA_CHANGE,
+            event="data_changed",
+            data={"entity": "users", "action": "create", "entity_id": user.id},
+        )
         return user
 
     async def update_user(self, user_id: int, payload: UserUpdate) -> UserOut:
@@ -88,7 +104,23 @@ class UserService:
             await uow.commit()
 
         await self.cache.delete_by_pattern(self._cache_pattern)
-        await self.cache.delete_user_session(user_id)
+        await self.session_service.delete_all_user_sessions(user_id)
+
+        await self.pubsub.publish(
+            PubSubChannel.CACHE_INVALIDATION,
+            event="cache_invalidated",
+            data={"entity": "users", "pattern": self._cache_pattern},
+        )
+        await self.pubsub.publish(
+            PubSubChannel.SESSION_INVALIDATION,
+            event="session_invalidated",
+            data={"user_id": user_id},
+        )
+        await self.pubsub.publish(
+            PubSubChannel.DATA_CHANGE,
+            event="data_changed",
+            data={"entity": "users", "action": "update", "entity_id": user_id},
+        )
         return user
 
     async def delete_user(self, user_id: int) -> None:
@@ -103,4 +135,20 @@ class UserService:
             await uow.commit()
 
         await self.cache.delete_by_pattern(self._cache_pattern)
-        await self.cache.delete_user_session(user_id)
+        await self.session_service.delete_all_user_sessions(user_id)
+
+        await self.pubsub.publish(
+            PubSubChannel.CACHE_INVALIDATION,
+            event="cache_invalidated",
+            data={"entity": "users", "pattern": self._cache_pattern},
+        )
+        await self.pubsub.publish(
+            PubSubChannel.SESSION_INVALIDATION,
+            event="session_invalidated",
+            data={"user_id": user_id},
+        )
+        await self.pubsub.publish(
+            PubSubChannel.DATA_CHANGE,
+            event="data_changed",
+            data={"entity": "users", "action": "delete", "entity_id": user_id},
+        )

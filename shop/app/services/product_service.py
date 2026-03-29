@@ -7,6 +7,7 @@ from shop.app.schemas.product_schemas import (
     ProductUpdate,
 )
 from shop.app.services.cache_service import CacheService
+from shop.app.services.pubsub_service import PubSubChannel, PubSubService
 
 
 class ProductService:
@@ -14,10 +15,12 @@ class ProductService:
         self,
         uow: UnitOfWork,
         cache: CacheService,
+        pubsub: PubSubService,
         cache_ttl_seconds: int | None = None,
     ):
         self.uow = uow
         self.cache = cache
+        self.pubsub = pubsub
         self._cache_ttl_seconds = cache_ttl_seconds
         self._cache_pattern = "products:limit:*"
 
@@ -32,6 +35,16 @@ class ProductService:
             await uow.commit()
 
         await self.cache.delete_by_pattern(self._cache_pattern)
+        await self.pubsub.publish(
+            PubSubChannel.CACHE_INVALIDATION,
+            event="cache_invalidated",
+            data={"entity": "products", "pattern": self._cache_pattern},
+        )
+        await self.pubsub.publish(
+            PubSubChannel.DATA_CHANGE,
+            event="data_changed",
+            data={"entity": "products", "action": "create", "entity_id": product_id},
+        )
         return {"id": product_id, "message": "Product created successfully"}
 
     async def get_product_by_id(self, product_id: int) -> ProductOut:
@@ -65,6 +78,16 @@ class ProductService:
             await uow.commit()
 
         await self.cache.delete_by_pattern(self._cache_pattern)
+        await self.pubsub.publish(
+            PubSubChannel.CACHE_INVALIDATION,
+            event="cache_invalidated",
+            data={"entity": "products", "pattern": self._cache_pattern},
+        )
+        await self.pubsub.publish(
+            PubSubChannel.DATA_CHANGE,
+            event="data_changed",
+            data={"entity": "products", "action": "update", "entity_id": product_id},
+        )
         return ProductResponse(id=product_id, message="Product updated successfully")
 
     async def delete_product(self, product_id: int) -> ProductResponse:
@@ -78,4 +101,14 @@ class ProductService:
             await uow.commit()
 
         await self.cache.delete_by_pattern(self._cache_pattern)
+        await self.pubsub.publish(
+            PubSubChannel.CACHE_INVALIDATION,
+            event="cache_invalidated",
+            data={"entity": "products", "pattern": self._cache_pattern},
+        )
+        await self.pubsub.publish(
+            PubSubChannel.DATA_CHANGE,
+            event="data_changed",
+            data={"entity": "products", "action": "delete", "entity_id": product_id},
+        )
         return ProductResponse(id=product_id, message="Product deleted successfully")
