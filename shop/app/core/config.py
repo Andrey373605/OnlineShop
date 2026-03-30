@@ -60,8 +60,17 @@ class Settings(BaseSettings):
     ANALYTICS_CACHE_TTL_SECONDS: int = 60
     USER_SESSION_CACHE_TTL_SECONDS: int = 1800 
 
+    # Minio settings
+    MINIO_HOST: str = "localhost"
+    MINIO_PORT: int = 9000
+    MINIO_ROOT_USER: str
+    MINIO_ROOT_PASSWORD: str
+    MINIO_BUCKET: str = "shop"
+    MINIO_USE_SSL: bool = False
+
     # Event log retention (MongoDB TTL)
     EVENT_LOG_TTL_DAYS: int = 30
+
     # IANA-имя пояса для меток времени в логах (например Europe/Moscow, UTC)
     EVENT_LOG_TIMEZONE: str = "UTC"
 
@@ -87,6 +96,11 @@ class Settings(BaseSettings):
     @property
     def MONGO_URL(self) -> str:
         return f"mongodb://{self.MONGODB_USER}:{self.MONGODB_PASSWORD}@{self.MONGODB_HOST}:{self.MONGODB_PORT}/{self.MONGODB_DB}?authSource=admin"
+
+    @property
+    def MINIO_URL(self) -> str:
+        scheme = "https" if self.MINIO_USE_SSL else "http"
+        return f"{scheme}://{self.MINIO_HOST}:{self.MINIO_PORT}"
 
     model_config = ConfigDict(
         env_file=".env",
