@@ -7,6 +7,7 @@ from redis.asyncio import Redis
 
 from shop.app.core.cache import create_cache_service
 from shop.app.core.config import settings
+from shop.app.services.cache_service import CacheService
 from shop.app.core.db import create_db_pool, close_db_pool
 from shop.app.core.mongo import create_mongo_client, get_mongo_database, close_mongo_client
 from shop.app.core.mongo_indexes import (
@@ -34,24 +35,24 @@ def _create_pubsub_redis() -> Redis:
     )
 
 
-async def _init_mongo(app: FastAPI) -> None:
-    mongo_client = create_mongo_client()
-    app.state.mongo_client = mongo_client
-    app.state.mongo_db = get_mongo_database(mongo_client)
-    await ensure_event_log_ttl_index(app.state.mongo_db)
-    await ensure_event_log_search_indexes(app.state.mongo_db)
+async def _setup_mongo() -> tuple:
+    client = create_mongo_client()
+    db = get_mongo_database(client)
+    await ensure_event_log_ttl_index(db)
+    await ensure_event_log_search_indexes(db)
+    return client, db
 
 
-async def _init_session_service(app: FastAPI) -> SessionService:
+def _create_session_service(cache_service: CacheService) -> SessionService:
     return SessionService(
-        redis_client=app.state.cache_service.redis_client,
+        redis_client=cache_service.redis_client,
         instance_id=settings.INSTANCE_ID,
         ttl_seconds=settings.USER_SESSION_CACHE_TTL_SECONDS,
     )
 
 
-async def _init_pubsub(
-    app: FastAPI,
+async def _setup_pubsub(
+    cache_service: CacheService,
     session_service: SessionService,
 ) -> tuple[PubSubService, Redis, asyncio.Task]:
     pubsub_service = PubSubService(instance_id=settings.INSTANCE_ID)
@@ -60,7 +61,7 @@ async def _init_pubsub(
 
     pubsub_service.on(
         PubSubChannel.CACHE_INVALIDATION,
-        make_cache_invalidation_handler(app.state.cache_service),
+        make_cache_invalidation_handler(cache_service),
     )
     pubsub_service.on(
         PubSubChannel.SESSION_INVALIDATION,
@@ -76,7 +77,7 @@ async def _init_pubsub(
     return pubsub_service, pubsub_redis, listener_task
 
 
-async def _shutdown_pubsub(
+async def _close_pubsub(
     pubsub_service: PubSubService,
     pubsub_redis: Redis,
     listener_task: asyncio.Task,
@@ -92,16 +93,20 @@ async def _shutdown_pubsub(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.db_pool = await create_db_pool()
-    app.state.cache_service = await create_cache_service()
-    await _init_mongo(app)
-
-    session_service = await _init_session_service(app)
-    app.state.session_service = session_service
-
-    pubsub_service, pubsub_redis, pubsub_task = await _init_pubsub(
-        app, session_service,
+    # --- startup ---
+    db_pool = await create_db_pool()
+    cache_service = await create_cache_service()
+    mongo_client, mongo_db = await _setup_mongo()
+    session_service = _create_session_service(cache_service)
+    pubsub_service, pubsub_redis, pubsub_task = await _setup_pubsub(
+        cache_service, session_service,
     )
+
+    app.state.db_pool = db_pool
+    app.state.cache_service = cache_service
+    app.state.mongo_client = mongo_client
+    app.state.mongo_db = mongo_db
+    app.state.session_service = session_service
     app.state.pubsub_service = pubsub_service
 
     logger.info(
@@ -112,7 +117,8 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    await _shutdown_pubsub(pubsub_service, pubsub_redis, pubsub_task)
-    close_mongo_client(app.state.mongo_client)
-    await app.state.cache_service.disconnect()
-    await close_db_pool(app.state.db_pool)
+    # --- shutdown (обратный порядок) ---
+    await _close_pubsub(pubsub_service, pubsub_redis, pubsub_task)
+    close_mongo_client(mongo_client)
+    await cache_service.disconnect()
+    await close_db_pool(db_pool)
