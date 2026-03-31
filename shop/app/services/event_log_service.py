@@ -15,7 +15,7 @@ from shop.app.schemas.event_log_schemas import (
 
 class EventLogService:
     def __init__(self, repo: EventLogRepository) -> None:
-        self.repo = repo
+        self._repo = repo
         self._logger = logging.getLogger(__name__)
 
     async def log_event(
@@ -48,7 +48,7 @@ class EventLogService:
         )
 
         try:
-            return await self.repo.create(payload.model_dump(exclude_none=True))
+            return await self._repo.create(payload.model_dump(exclude_none=True))
         except Exception as exc:  # pragma: no cover - logging best-effort
             self._logger.exception("Failed to persist event log: %s", exc)
             return None
@@ -109,7 +109,7 @@ class EventLogService:
             time_to = filter_params.time_to
             user_id = filter_params.user_id
             event_type = filter_params.event_type
-        items, total = await self.repo.get_filtered(
+        items, total = await self._repo.get_filtered(
             time_from=time_from,
             time_to=time_to,
             user_id=user_id,
@@ -120,4 +120,4 @@ class EventLogService:
         return EventLogListOut(items=items, total=total)
 
     async def get_event(self, event_id: int) -> EventLogOut | None:
-        return await self.repo.get_by_id(event_id)
+        return await self._repo.get_by_id(event_id)

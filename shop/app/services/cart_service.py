@@ -13,15 +13,15 @@ from shop.app.schemas.product_schemas import ProductOut
 
 class CartService:
     def __init__(self, uow: UnitOfWork):
-        self.uow = uow
+        self._uow = uow
 
     async def get_cart(self, user_id: int) -> CartWithItems:
-        async with self.uow as uow:
+        async with self._uow as uow:
             cart = await self._ensure_cart(uow, user_id)
             return await self._build_cart_response(uow, cart)
 
     async def add_item(self, user_id: int, data: CartItemAdd) -> CartWithItems:
-        async with self.uow as uow:
+        async with self._uow as uow:
             cart = await self._ensure_cart(uow, user_id)
             product = await self._get_product_or_raise(uow, data.product_id)
             self._validate_quantity(data.quantity, product)
@@ -58,7 +58,7 @@ class CartService:
             item_id: int,
             data: CartItemQuantityUpdate,
     ) -> CartWithItems:
-        async with self.uow as uow:
+        async with self._uow as uow:
             cart = await self._ensure_cart(uow, user_id)
             cart_item = await self._get_cart_item_or_raise(uow, item_id, cart.id)
             product = await self._get_product_or_raise(uow, cart_item.product_id)
@@ -74,7 +74,7 @@ class CartService:
             return result
 
     async def remove_item(self, user_id: int, item_id: int) -> CartWithItems:
-        async with self.uow as uow:
+        async with self._uow as uow:
             cart = await self._ensure_cart(uow, user_id)
             await self._get_cart_item_or_raise(uow, item_id, cart.id)
             await uow.cart_items.delete(item_id)
@@ -84,7 +84,7 @@ class CartService:
             return result
 
     async def clear_cart(self, user_id: int) -> CartWithItems:
-        async with self.uow as uow:
+        async with self._uow as uow:
             cart = await self._ensure_cart(uow, user_id)
             await uow.cart_items.delete_by_cart_id(cart.id)
             await uow.carts.update(cart.id, {"total_amount": Decimal("0")})

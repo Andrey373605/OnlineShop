@@ -5,19 +5,19 @@ from shop.app.schemas.event_log_schemas import EventLogOut
 
 class EventLogRepositorySql:
     def __init__(self, conn, queries):
-        self.conn = conn
-        self.queries = queries
+        self._conn = conn
+        self._queries = queries
 
     async def get_all(self, limit: int, offset: int) -> list[EventLogOut]:
-        rows = await self.queries.get_all_event_log(
-            self.conn,
+        rows = await self._queries.get_all_event_log(
+            self._conn,
             limit=limit,
             offset=offset,
         )
         return [EventLogOut(**row) for row in rows]
 
     async def get_by_id(self, event_id: int) -> EventLogOut | None:
-        row = await self.queries.get_event_log_by_id(self.conn, id=event_id)
+        row = await self._queries.get_event_log_by_id(self._conn, id=event_id)
         return EventLogOut(**row) if row else None
 
     async def get_by_user_id(
@@ -26,8 +26,8 @@ class EventLogRepositorySql:
         limit: int,
         offset: int,
     ) -> list[EventLogOut]:
-        rows = await self.queries.get_events_by_user_id(
-            self.conn,
+        rows = await self._queries.get_events_by_user_id(
+            self._conn,
             user_id=user_id,
             limit=limit,
             offset=offset,
@@ -47,8 +47,8 @@ class EventLogRepositorySql:
         # Заглушка: полная фильтрация реализована в EventLogRepositoryMongo.
         # При использовании SQL можно добавить соответствующие запросы в queries.
         if user_id is not None:
-            rows = await self.queries.get_events_by_user_id(
-                self.conn, user_id=user_id, limit=limit, offset=offset
+            rows = await self._queries.get_events_by_user_id(
+                self._conn, user_id=user_id, limit=limit, offset=offset
             )
             items = [EventLogOut(**row) for row in rows]
         else:
@@ -59,11 +59,11 @@ class EventLogRepositorySql:
 
     async def create(self, data: dict) -> int:
         filtered = {k: data[k] for k in self._CREATE_KEYS if k in data}
-        result = await self.queries.create_event_log(self.conn, **filtered)
+        result = await self._queries.create_event_log(self._conn, **filtered)
         return result["id"]
 
     async def delete(self, event_id: int) -> bool:
-        result = await self.queries.delete_event_log(self.conn, id=event_id)
+        result = await self._queries.delete_event_log(self._conn, id=event_id)
         return bool(result)
 
 

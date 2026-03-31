@@ -5,11 +5,11 @@ from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorDatabase
 
 class EventLogAnalyticsRepositoryMongo:
     def __init__(self, db: AsyncIOMotorDatabase):
-        self.db = db
+        self._db = db
 
     @property
     def collection(self) -> AsyncIOMotorCollection:
-        return self.db["event_log"]
+        return self._db["event_log"]
 
     async def aggregate_activity_by_period(
         self, period: str,

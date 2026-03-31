@@ -42,15 +42,15 @@ def _build_filter_query(
 
 class EventLogRepositoryMongo:
     def __init__(self, db: AsyncIOMotorDatabase):
-        self.db = db
+        self._db = db
 
     @property
     def collection(self) -> AsyncIOMotorCollection:
-        return self.db["event_log"]
+        return self._db["event_log"]
 
     @property
     def counter_collection(self) -> AsyncIOMotorCollection:
-        return self.db["counter_collection"]
+        return self._db["counter_collection"]
 
     def _to_out(self, doc: dict) -> EventLogOut:
         data = {k: v for k, v in doc.items() if k != "_id"}

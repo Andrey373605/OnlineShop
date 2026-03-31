@@ -9,18 +9,18 @@ from shop.app.schemas.order_schemas import OrderCreate, OrderOut, OrderUpdate
 
 class OrderService:
     def __init__(self, uow: UnitOfWork):
-        self.uow = uow
+        self._uow = uow
 
     async def list_orders(self, limit: int, offset: int) -> list[OrderOut]:
-        async with self.uow as uow:
+        async with self._uow as uow:
             return await uow.orders.get_all(limit=limit, offset=offset)
 
     async def get_order_by_id(self, order_id: int) -> OrderOut:
-        async with self.uow as uow:
+        async with self._uow as uow:
             return await self._get_order_or_raise(uow, order_id)
 
     async def create_order(self, data: OrderCreate) -> OrderOut:
-        async with self.uow as uow:
+        async with self._uow as uow:
             if await uow.orders.get_by_number(data.order_number):
                 raise AlreadyExistsError("Order number")
 
@@ -30,7 +30,7 @@ class OrderService:
             return order
 
     async def update_order(self, order_id: int, data: OrderUpdate) -> OrderOut:
-        async with self.uow as uow:
+        async with self._uow as uow:
             await self._get_order_or_raise(uow, order_id)
 
             update_data = data.model_dump(exclude_unset=True)
@@ -43,7 +43,7 @@ class OrderService:
             return order
 
     async def delete_order(self, order_id: int) -> None:
-        async with self.uow as uow:
+        async with self._uow as uow:
             await self._get_order_or_raise(uow, order_id)
             await uow.order_items.delete_by_order_id(order_id)
             deleted = await uow.orders.delete(order_id)

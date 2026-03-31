@@ -18,14 +18,14 @@ class ProductService:
         pubsub: PubSubService,
         cache_ttl_seconds: int | None = None,
     ):
-        self.uow = uow
-        self.cache = cache
-        self.pubsub = pubsub
+        self._uow = uow
+        self._cache = cache
+        self._pubsub = pubsub
         self._cache_ttl_seconds = cache_ttl_seconds
         self._cache_pattern = "products:limit:*"
 
     async def create_product(self, data: ProductCreate) -> dict:
-        async with self.uow as uow:
+        async with self._uow as uow:
             if not await uow.categories.exists_category_with_id(data.category_id):
                 raise NotFoundError("Category")
 
@@ -34,13 +34,13 @@ class ProductService:
                 raise OperationFailedError("Failed to create product")
             await uow.commit()
 
-        await self.cache.delete_by_pattern(self._cache_pattern)
-        await self.pubsub.publish(
+        await self._cache.delete_by_pattern(self._cache_pattern)
+        await self._pubsub.publish(
             PubSubChannel.CACHE_INVALIDATION,
             event="cache_invalidated",
             data={"entity": "products", "pattern": self._cache_pattern},
         )
-        await self.pubsub.publish(
+        await self._pubsub.publish(
             PubSubChannel.DATA_CHANGE,
             event="data_changed",
             data={"entity": "products", "action": "create", "entity_id": product_id},
@@ -48,7 +48,7 @@ class ProductService:
         return {"id": product_id, "message": "Product created successfully"}
 
     async def get_product_by_id(self, product_id: int) -> ProductOut:
-        async with self.uow as uow:
+        async with self._uow as uow:
             product = await uow.products.get_by_id(product_id)
             if not product:
                 raise NotFoundError("Product")
@@ -56,19 +56,19 @@ class ProductService:
 
     async def get_all_products(self, limit: int, offset: int) -> list[ProductOut]:
         key = f"products:limit:{limit}:offset:{offset}"
-        if await self.cache.exists(key):
-            items_str = await self.cache.get_list(key)
+        if await self._cache.exists(key):
+            items_str = await self._cache.get_list(key)
             return [ProductOut.model_validate_json(s) for s in items_str]
 
-        async with self.uow as uow:
+        async with self._uow as uow:
             products = await uow.products.get_all(limit=limit, offset=offset)
 
         items_str = [p.model_dump_json() for p in products]
-        await self.cache.set_list_atomic(key, items_str, ttl_seconds=self._cache_ttl_seconds)
+        await self._cache.set_list_atomic(key, items_str, ttl_seconds=self._cache_ttl_seconds)
         return products
 
     async def update_product(self, product_id: int, data: ProductUpdate) -> ProductResponse:
-        async with self.uow as uow:
+        async with self._uow as uow:
             if not await uow.products.exists_product_with_id(product_id):
                 raise NotFoundError("Product")
 
@@ -77,13 +77,13 @@ class ProductService:
                 raise OperationFailedError("Failed to update product")
             await uow.commit()
 
-        await self.cache.delete_by_pattern(self._cache_pattern)
-        await self.pubsub.publish(
+        await self._cache.delete_by_pattern(self._cache_pattern)
+        await self._pubsub.publish(
             PubSubChannel.CACHE_INVALIDATION,
             event="cache_invalidated",
             data={"entity": "products", "pattern": self._cache_pattern},
         )
-        await self.pubsub.publish(
+        await self._pubsub.publish(
             PubSubChannel.DATA_CHANGE,
             event="data_changed",
             data={"entity": "products", "action": "update", "entity_id": product_id},
@@ -91,7 +91,7 @@ class ProductService:
         return ProductResponse(id=product_id, message="Product updated successfully")
 
     async def delete_product(self, product_id: int) -> ProductResponse:
-        async with self.uow as uow:
+        async with self._uow as uow:
             if not await uow.products.exists_product_with_id(product_id):
                 raise NotFoundError("Product")
 
@@ -100,13 +100,13 @@ class ProductService:
                 raise OperationFailedError("Failed to delete product")
             await uow.commit()
 
-        await self.cache.delete_by_pattern(self._cache_pattern)
-        await self.pubsub.publish(
+        await self._cache.delete_by_pattern(self._cache_pattern)
+        await self._pubsub.publish(
             PubSubChannel.CACHE_INVALIDATION,
             event="cache_invalidated",
             data={"entity": "products", "pattern": self._cache_pattern},
         )
-        await self.pubsub.publish(
+        await self._pubsub.publish(
             PubSubChannel.DATA_CHANGE,
             event="data_changed",
             data={"entity": "products", "action": "delete", "entity_id": product_id},

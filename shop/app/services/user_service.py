@@ -24,15 +24,15 @@ class UserService:
         session_service: SessionService,
         cache_ttl_seconds: int | None = None,
     ):
-        self.uow = uow
-        self.cache = cache
-        self.pubsub = pubsub
-        self.session_service = session_service
+        self._uow = uow
+        self._cache = cache
+        self._pubsub = pubsub
+        self._session_service = session_service
         self._cache_ttl_seconds = cache_ttl_seconds
         self._cache_pattern = "users:limit:*"
 
     async def get_user_by_id(self, user_id: int) -> UserOut:
-        async with self.uow as uow:
+        async with self._uow as uow:
             user = await uow.users.get_by_id(user_id)
             if not user:
                 raise NotFoundError("User")
@@ -41,19 +41,19 @@ class UserService:
     async def list_users(self, limit: int, offset: int) -> list[UserOut]:
         key = f"users:limit:{limit}:offset:{offset}"
 
-        if await self.cache.exists(key):
-            users_str = await self.cache.get_list(key)
+        if await self._cache.exists(key):
+            users_str = await self._cache.get_list(key)
             return [UserOut.model_validate_json(s) for s in users_str]
 
-        async with self.uow as uow:
+        async with self._uow as uow:
             users = await uow.users.get_all(limit=limit, offset=offset)
 
         users_str = [u.model_dump_json() for u in users]
-        await self.cache.set_list_atomic(key, users_str, ttl_seconds=self._cache_ttl_seconds)
+        await self._cache.set_list_atomic(key, users_str, ttl_seconds=self._cache_ttl_seconds)
         return users
 
     async def create_user(self, payload: UserCreate) -> UserOut:
-        async with self.uow as uow:
+        async with self._uow as uow:
             if await uow.users.exists_with_username(payload.username):
                 raise AlreadyExistsError("Username")
 
@@ -69,13 +69,13 @@ class UserService:
                 raise OperationFailedError("Unable to fetch created user")
             await uow.commit()
 
-        await self.cache.delete_by_pattern(self._cache_pattern)
-        await self.pubsub.publish(
+        await self._cache.delete_by_pattern(self._cache_pattern)
+        await self._pubsub.publish(
             PubSubChannel.CACHE_INVALIDATION,
             event="cache_invalidated",
             data={"entity": "users", "pattern": self._cache_pattern},
         )
-        await self.pubsub.publish(
+        await self._pubsub.publish(
             PubSubChannel.DATA_CHANGE,
             event="data_changed",
             data={"entity": "users", "action": "create", "entity_id": user.id},
@@ -83,7 +83,7 @@ class UserService:
         return user
 
     async def update_user(self, user_id: int, payload: UserUpdate) -> UserOut:
-        async with self.uow as uow:
+        async with self._uow as uow:
             existing = await uow.users.get_by_id(user_id)
             if not existing:
                 raise NotFoundError("User")
@@ -103,20 +103,20 @@ class UserService:
                 raise OperationFailedError("Unable to fetch updated user")
             await uow.commit()
 
-        await self.cache.delete_by_pattern(self._cache_pattern)
-        await self.session_service.delete_all_user_sessions(user_id)
+        await self._cache.delete_by_pattern(self._cache_pattern)
+        await self._session_service.delete_all_user_sessions(user_id)
 
-        await self.pubsub.publish(
+        await self._pubsub.publish(
             PubSubChannel.CACHE_INVALIDATION,
             event="cache_invalidated",
             data={"entity": "users", "pattern": self._cache_pattern},
         )
-        await self.pubsub.publish(
+        await self._pubsub.publish(
             PubSubChannel.SESSION_INVALIDATION,
             event="session_invalidated",
             data={"user_id": user_id},
         )
-        await self.pubsub.publish(
+        await self._pubsub.publish(
             PubSubChannel.DATA_CHANGE,
             event="data_changed",
             data={"entity": "users", "action": "update", "entity_id": user_id},
@@ -124,7 +124,7 @@ class UserService:
         return user
 
     async def delete_user(self, user_id: int) -> None:
-        async with self.uow as uow:
+        async with self._uow as uow:
             existing = await uow.users.get_by_id(user_id)
             if not existing:
                 raise NotFoundError("User")
@@ -134,20 +134,20 @@ class UserService:
                 raise OperationFailedError("Failed to delete user")
             await uow.commit()
 
-        await self.cache.delete_by_pattern(self._cache_pattern)
-        await self.session_service.delete_all_user_sessions(user_id)
+        await self._cache.delete_by_pattern(self._cache_pattern)
+        await self._session_service.delete_all_user_sessions(user_id)
 
-        await self.pubsub.publish(
+        await self._pubsub.publish(
             PubSubChannel.CACHE_INVALIDATION,
             event="cache_invalidated",
             data={"entity": "users", "pattern": self._cache_pattern},
         )
-        await self.pubsub.publish(
+        await self._pubsub.publish(
             PubSubChannel.SESSION_INVALIDATION,
             event="session_invalidated",
             data={"user_id": user_id},
         )
-        await self.pubsub.publish(
+        await self._pubsub.publish(
             PubSubChannel.DATA_CHANGE,
             event="data_changed",
             data={"entity": "users", "action": "delete", "entity_id": user_id},

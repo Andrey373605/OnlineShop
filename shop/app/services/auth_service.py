@@ -41,14 +41,14 @@ class AuthService:
         cache: CacheService,
         session_service: SessionService,
     ):
-        self.uow = uow
-        self.cache = cache
-        self.session_service = session_service
+        self._uow = uow
+        self._cache = cache
+        self._session_service = session_service
 
     # ---------- Public API ----------
 
     async def register(self, payload: RegisterRequest) -> RegisterResponse:
-        async with self.uow as uow:
+        async with self._uow as uow:
             await self._ensure_unique_credentials(uow, payload.username, payload.email)
             await self._ensure_default_role_exists(uow)
             user = await self._create_user_with_default_role(uow, payload)
@@ -64,13 +64,13 @@ class AuthService:
         ip_address: str = "",
         user_agent: str = "",
     ) -> AuthResponse:
-        async with self.uow as uow:
+        async with self._uow as uow:
             user = await self._authenticate_user(uow, payload)
-            await self.cache.reset_failed_attempts(payload.username)
+            await self._cache.reset_failed_attempts(payload.username)
             self._ensure_user_active(user)
 
             safe_user = await self._reload_user(uow, user.id)
-            session_id = await self.session_service.create_session(
+            session_id = await self._session_service.create_session(
                 safe_user, ip_address=ip_address, user_agent=user_agent,
             )
             tokens = await self._issue_tokens(uow, safe_user, session_id=session_id)
@@ -81,7 +81,7 @@ class AuthService:
     async def refresh(self, payload: RefreshRequest) -> RefreshResponse:
         token_data = self._decode_and_validate_refresh_token(payload.refresh_token)
 
-        async with self.uow as uow:
+        async with self._uow as uow:
             token_hash = hash_token(payload.refresh_token)
             stored_token = await self._get_refresh_session_or_unauthorized(uow, token_hash)
 
@@ -90,16 +90,16 @@ class AuthService:
 
             old_session_id = token_data.get("sid")
             if old_session_id:
-                await self.session_service.delete_session(old_session_id)
+                await self._session_service.delete_session(old_session_id)
 
-            session_id = await self.session_service.create_session(user)
+            session_id = await self._session_service.create_session(user)
             tokens = await self._issue_tokens(uow, user, session_id=session_id)
             await uow.commit()
 
         return RefreshResponse(**tokens.model_dump())
 
     async def logout(self, payload: LogoutRequest, session_id: str | None = None) -> None:
-        async with self.uow as uow:
+        async with self._uow as uow:
             token_hash = hash_token(payload.refresh_token)
             rows = await uow.refresh_tokens.delete_by_hash(token_hash)
             if not rows:
@@ -109,7 +109,7 @@ class AuthService:
             await uow.commit()
 
         if session_id:
-            await self.session_service.delete_session(session_id)
+            await self._session_service.delete_session(session_id)
 
     # ---------- Internal helpers ----------
 
@@ -152,7 +152,7 @@ class AuthService:
         return user
 
     async def _authenticate_user(self, uow: UnitOfWork, payload: LoginRequest) -> UserOut:
-        if await self.cache.is_blacklisted(payload.username):
+        if await self._cache.is_blacklisted(payload.username):
             raise PermissionDeniedError(
                 "Account temporarily blocked due to too many failed login "
                 f"attempts. Please try again in {settings.BLOCK_TIME_MINUTES} minutes."
@@ -212,9 +212,9 @@ class AuthService:
         return user
 
     async def _handle_failed_attempt(self, username: str) -> None:
-        attempts = await self.cache.increment_failed_attempts(username)
+        attempts = await self._cache.increment_failed_attempts(username)
         if attempts >= settings.MAX_FAILED_ATTEMPTS:
-            await self.cache.add_to_blocklist(
+            await self._cache.add_to_blocklist(
                 username=username,
                 ttl_minutes=settings.BLOCK_TIME_MINUTES,
             )

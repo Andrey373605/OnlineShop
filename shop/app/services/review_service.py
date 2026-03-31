@@ -11,14 +11,14 @@ from shop.app.schemas.review_schemas import ReviewCreate, ReviewOut, ReviewUpdat
 
 class ReviewService:
     def __init__(self, uow: UnitOfWork) -> None:
-        self.uow = uow
+        self._uow = uow
 
     async def list_reviews(self, limit: int, offset: int) -> list[ReviewOut]:
-        async with self.uow as uow:
+        async with self._uow as uow:
             return await uow.reviews.get_all(limit=limit, offset=offset)
 
     async def get_review_by_id(self, review_id: int) -> ReviewOut:
-        async with self.uow as uow:
+        async with self._uow as uow:
             return await self._get_review_or_raise(uow, review_id)
 
     async def create_review(
@@ -27,7 +27,7 @@ class ReviewService:
             data: ReviewCreate,
     ) -> ReviewOut:
         self._validate_rating_value(data.rating)
-        async with self.uow as uow:
+        async with self._uow as uow:
             if not await uow.products.exists_product_with_id(data.product_id):
                 raise NotFoundError("Product")
 
@@ -55,7 +55,7 @@ class ReviewService:
         if data.rating is not None:
             self._validate_rating_value(data.rating)
 
-        async with self.uow as uow:
+        async with self._uow as uow:
             review = await self._get_review_or_raise(uow, review_id)
             self._ensure_author_or_admin(review.user_id, user_id, is_admin)
 
@@ -76,7 +76,7 @@ class ReviewService:
             user_id: int,
             is_admin: bool = False,
     ) -> None:
-        async with self.uow as uow:
+        async with self._uow as uow:
             review = await self._get_review_or_raise(uow, review_id)
             self._ensure_author_or_admin(review.user_id, user_id, is_admin)
 

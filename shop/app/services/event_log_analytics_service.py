@@ -15,35 +15,35 @@ from shop.app.schemas.analytics_schemas import (
 
 class EventLogAnalyticsService:
     def __init__(self, repo: EventLogAnalyticsRepository) -> None:
-        self.repo = repo
+        self._repo = repo
 
     async def activity_by_period(
         self, period: str,
         time_from: datetime | None = None,
         time_to: datetime | None = None,
     ) -> list[ActivityByPeriod]:
-        rows = await self.repo.aggregate_activity_by_period(period, time_from, time_to)
+        rows = await self._repo.aggregate_activity_by_period(period, time_from, time_to)
         return [ActivityByPeriod(**r) for r in rows]
 
     async def top_users(self, limit: int = 10) -> list[TopUser]:
-        rows = await self.repo.aggregate_top_users(limit)
+        rows = await self._repo.aggregate_top_users(limit)
         return [TopUser(**r) for r in rows]
 
     async def event_type_stats(self) -> list[EventTypeStats]:
-        rows = await self.repo.aggregate_event_type_stats()
+        rows = await self._repo.aggregate_event_type_stats()
         return [EventTypeStats(**r) for r in rows]
 
     async def time_series(
         self, time_from: datetime, time_to: datetime,
         granularity: str = "hour",
     ) -> list[TimeSeriesPoint]:
-        rows = await self.repo.aggregate_time_series(time_from, time_to, granularity)
+        rows = await self._repo.aggregate_time_series(time_from, time_to, granularity)
         return [TimeSeriesPoint(**r) for r in rows]
 
     async def user_anomalies(
         self, time_from: datetime, std_threshold: float = 2.0,
     ) -> list[UserAnomaly]:
-        rows = await self.repo.aggregate_user_anomalies(time_from, std_threshold)
+        rows = await self._repo.aggregate_user_anomalies(time_from, std_threshold)
         return [UserAnomaly(**r) for r in rows]
 
 
