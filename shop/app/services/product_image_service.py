@@ -15,10 +15,10 @@ from shop.app.schemas.product_image_schemas import (
 
 class ProductImageService:
     def __init__(self, uow: UnitOfWork):
-        self.uow = uow
+        self._uow = uow
 
     async def create_image(self, data: ProductImageCreate) -> ProductImageResponse:
-        async with self.uow as uow:
+        async with self._uow as uow:
             await self._ensure_product_exists(uow, data.product_id)
 
             image_id = await uow.product_images.create(data.model_dump())
@@ -32,11 +32,11 @@ class ProductImageService:
         )
 
     async def get_image_by_id(self, image_id: int) -> ProductImageOut:
-        async with self.uow as uow:
+        async with self._uow as uow:
             return await self._get_image_or_raise(uow, image_id)
 
     async def get_images_by_product_id(self, product_id: int) -> list[ProductImageOut]:
-        async with self.uow as uow:
+        async with self._uow as uow:
             await self._ensure_product_exists(uow, product_id)
             return await uow.product_images.get_by_product_id(product_id)
 
@@ -45,7 +45,7 @@ class ProductImageService:
             image_id: int,
             data: ProductImageUpdate,
     ) -> ProductImageResponse:
-        async with self.uow as uow:
+        async with self._uow as uow:
             existing_image = await self._get_image_or_raise(uow, image_id)
 
             payload = data.model_dump(exclude_unset=True)
@@ -66,7 +66,7 @@ class ProductImageService:
         )
 
     async def delete_image(self, image_id: int) -> ProductImageResponse:
-        async with self.uow as uow:
+        async with self._uow as uow:
             await self._get_image_or_raise(uow, image_id)
 
             success = await uow.product_images.delete(image_id)
@@ -83,7 +83,7 @@ class ProductImageService:
             self,
             product_id: int,
     ) -> ProductImagesDeleteResponse:
-        async with self.uow as uow:
+        async with self._uow as uow:
             await self._ensure_product_exists(uow, product_id)
             deleted_ids = await uow.product_images.delete_by_product_id(product_id)
             await uow.commit()

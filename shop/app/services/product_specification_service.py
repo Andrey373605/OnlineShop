@@ -15,13 +15,13 @@ from shop.app.schemas.product_specification_schemas import (
 
 class ProductSpecificationService:
     def __init__(self, uow: UnitOfWork):
-        self.uow = uow
+        self._uow = uow
 
     async def create_specification(
             self,
             data: ProductSpecificationCreate,
     ) -> ProductSpecificationResponse:
-        async with self.uow as uow:
+        async with self._uow as uow:
             await self._ensure_product_exists(uow, data.product_id)
 
             existing = await uow.product_specifications.get_by_product_id(data.product_id)
@@ -42,21 +42,21 @@ class ProductSpecificationService:
         )
 
     async def get_all_specifications(self) -> list[ProductSpecificationOut]:
-        async with self.uow as uow:
+        async with self._uow as uow:
             return await uow.product_specifications.get_all()
 
     async def get_specification_by_id(
             self,
             specification_id: int,
     ) -> ProductSpecificationOut:
-        async with self.uow as uow:
+        async with self._uow as uow:
             return await self._get_specification_or_raise(uow, specification_id)
 
     async def get_specification_by_product_id(
             self,
             product_id: int,
     ) -> ProductSpecificationOut:
-        async with self.uow as uow:
+        async with self._uow as uow:
             specification = await uow.product_specifications.get_by_product_id(product_id)
             if not specification:
                 raise NotFoundError("Product specification")
@@ -67,7 +67,7 @@ class ProductSpecificationService:
             specification_id: int,
             data: ProductSpecificationUpdate,
     ) -> ProductSpecificationResponse:
-        async with self.uow as uow:
+        async with self._uow as uow:
             await self._get_specification_or_raise(uow, specification_id)
 
             payload = data.model_dump(exclude_unset=True)
@@ -91,7 +91,7 @@ class ProductSpecificationService:
             self,
             specification_id: int,
     ) -> ProductSpecificationResponse:
-        async with self.uow as uow:
+        async with self._uow as uow:
             await self._get_specification_or_raise(uow, specification_id)
 
             success = await uow.product_specifications.delete(specification_id)

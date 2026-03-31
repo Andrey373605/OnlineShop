@@ -13,15 +13,15 @@ from shop.app.schemas.order_item_schemas import (
 
 class OrderItemService:
     def __init__(self, uow: UnitOfWork):
-        self.uow = uow
+        self._uow = uow
 
     async def list_order_items(self, order_id: int) -> list[OrderItemOut]:
-        async with self.uow as uow:
+        async with self._uow as uow:
             await self._get_order_or_raise(uow, order_id)
             return await uow.order_items.get_by_order_id(order_id)
 
     async def get_order_item(self, order_id: int, item_id: int) -> OrderItemOut:
-        async with self.uow as uow:
+        async with self._uow as uow:
             item = await self._get_item_or_raise(uow, item_id)
             if item.order_id != order_id:
                 raise NotFoundError("Order item")
@@ -32,7 +32,7 @@ class OrderItemService:
             order_id: int,
             data: OrderItemCreate,
     ) -> OrderItemOut:
-        async with self.uow as uow:
+        async with self._uow as uow:
             self._validate_order_item_request(order_id, data.order_id)
             await self._get_order_or_raise(uow, order_id)
             await self._ensure_product_exists(uow, data.product_id)
@@ -51,7 +51,7 @@ class OrderItemService:
             item_id: int,
             data: OrderItemUpdate,
     ) -> OrderItemOut:
-        async with self.uow as uow:
+        async with self._uow as uow:
             item = await self._get_item_or_raise(uow, item_id)
             if item.order_id != order_id:
                 raise NotFoundError("Order item")
@@ -74,7 +74,7 @@ class OrderItemService:
             return item
 
     async def delete_order_item(self, order_id: int, item_id: int) -> None:
-        async with self.uow as uow:
+        async with self._uow as uow:
             item = await self._get_item_or_raise(uow, item_id)
             if item.order_id != order_id:
                 raise NotFoundError("Order item")
