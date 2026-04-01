@@ -1,3 +1,5 @@
+from fastapi import UploadFile
+
 from shop.app.core.exceptions import (
     DomainValidationError,
     NotFoundError,
@@ -11,13 +13,17 @@ from shop.app.schemas.product_image_schemas import (
     ProductImageUpdate,
     ProductImagesDeleteResponse,
 )
+from shop.app.services.s3_service import S3Service
 
 
 class ProductImageService:
-    def __init__(self, uow: UnitOfWork):
+    def __init__(self, uow: UnitOfWork, s3_service: S3Service):
         self._uow = uow
+        self._s3 = s3_service
 
-    async def create_image(self, data: ProductImageCreate) -> ProductImageResponse:
+    async def create_image(
+        self, data: ProductImageCreate, file: UploadFile
+    ) -> ProductImageResponse:
         async with self._uow as uow:
             await self._ensure_product_exists(uow, data.product_id)
 
@@ -41,9 +47,7 @@ class ProductImageService:
             return await uow.product_images.get_by_product_id(product_id)
 
     async def update_image(
-            self,
-            image_id: int,
-            data: ProductImageUpdate,
+        self, image_id: int, data: ProductImageUpdate, file: UploadFile
     ) -> ProductImageResponse:
         async with self._uow as uow:
             existing_image = await self._get_image_or_raise(uow, image_id)
@@ -67,12 +71,13 @@ class ProductImageService:
 
     async def delete_image(self, image_id: int) -> ProductImageResponse:
         async with self._uow as uow:
-            await self._get_image_or_raise(uow, image_id)
+            image = await self._get_image_or_raise(uow, image_id)
 
             success = await uow.product_images.delete(image_id)
             if not success:
                 raise OperationFailedError("Failed to delete product image")
             await uow.commit()
+        await self._s3.delete_by_media_url(image.image_path)
 
         return ProductImageResponse(
             id=image_id,
@@ -80,13 +85,16 @@ class ProductImageService:
         )
 
     async def delete_images_by_product_id(
-            self,
-            product_id: int,
+        self,
+        product_id: int,
     ) -> ProductImagesDeleteResponse:
         async with self._uow as uow:
             await self._ensure_product_exists(uow, product_id)
+            images = await uow.product_images.get_by_product_id(product_id)
             deleted_ids = await uow.product_images.delete_by_product_id(product_id)
             await uow.commit()
+        for image in images:
+            await self._s3.delete_by_media_url(image.image_path)
 
         return ProductImagesDeleteResponse(
             product_id=product_id,

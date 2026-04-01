@@ -3,7 +3,6 @@ from pydantic import BaseModel
 
 class ProductImageBase(BaseModel):
     product_id: int
-    image_path: str
 
 
 class ProductImageCreate(ProductImageBase):
@@ -11,12 +10,12 @@ class ProductImageCreate(ProductImageBase):
 
 
 class ProductImageUpdate(BaseModel):
-    product_id: int | None = None
-    image_path: str | None = None
+    pass
 
 
 class ProductImageOut(ProductImageBase):
     id: int
+    image_url: str
 
 
 class ProductImageResponse(BaseModel):
@@ -27,9 +26,3 @@ class ProductImageResponse(BaseModel):
 class ProductImagesDeleteResponse(BaseModel):
     product_id: int
     deleted_ids: list[int]
-
-
-
-
-
-
