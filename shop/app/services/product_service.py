@@ -1,3 +1,5 @@
+from fastapi import UploadFile
+
 from shop.app.core.exceptions import NotFoundError, OperationFailedError
 from shop.app.repositories.protocols import UnitOfWork
 from shop.app.schemas.product_schemas import (
@@ -8,6 +10,7 @@ from shop.app.schemas.product_schemas import (
 )
 from shop.app.services.cache_service import CacheService
 from shop.app.services.pubsub_service import PubSubChannel, PubSubService
+from shop.app.services.s3_service import S3Service
 
 
 class ProductService:
@@ -16,15 +19,17 @@ class ProductService:
         uow: UnitOfWork,
         cache: CacheService,
         pubsub: PubSubService,
+        s3_service: S3Service,
         cache_ttl_seconds: int | None = None,
     ):
         self._uow = uow
         self._cache = cache
         self._pubsub = pubsub
+        self._s3 = s3_service
         self._cache_ttl_seconds = cache_ttl_seconds
         self._cache_pattern = "products:limit:*"
 
-    async def create_product(self, data: ProductCreate) -> dict:
+    async def create_product(self, data: ProductCreate, thumbnail: UploadFile) -> dict:
         async with self._uow as uow:
             if not await uow.categories.exists_category_with_id(data.category_id):
                 raise NotFoundError("Category")
@@ -64,15 +69,21 @@ class ProductService:
             products = await uow.products.get_all(limit=limit, offset=offset)
 
         items_str = [p.model_dump_json() for p in products]
-        await self._cache.set_list_atomic(key, items_str, ttl_seconds=self._cache_ttl_seconds)
+        await self._cache.set_list_atomic(
+            key, items_str, ttl_seconds=self._cache_ttl_seconds
+        )
         return products
 
-    async def update_product(self, product_id: int, data: ProductUpdate) -> ProductResponse:
+    async def update_product(
+        self, product_id: int, data: ProductUpdate, thumbnail: UploadFile
+    ) -> ProductResponse:
         async with self._uow as uow:
             if not await uow.products.exists_product_with_id(product_id):
                 raise NotFoundError("Product")
 
-            success = await uow.products.update(product_id, data.model_dump(exclude_unset=True))
+            success = await uow.products.update(
+                product_id, data.model_dump(exclude_unset=True)
+            )
             if not success:
                 raise OperationFailedError("Failed to update product")
             await uow.commit()
@@ -92,13 +103,15 @@ class ProductService:
 
     async def delete_product(self, product_id: int) -> ProductResponse:
         async with self._uow as uow:
-            if not await uow.products.exists_product_with_id(product_id):
+            product = await uow.products.get_by_id(product_id)
+            if not product:
                 raise NotFoundError("Product")
 
             success = await uow.products.delete(product_id)
             if not success:
                 raise OperationFailedError("Failed to delete product")
             await uow.commit()
+        await self._s3.delete_by_media_url(product.thumbnail_url)
 
         await self._cache.delete_by_pattern(self._cache_pattern)
         await self._pubsub.publish(

@@ -8,7 +8,6 @@ class ProductBase(BaseModel):
     price: Decimal
     stock: int
     brand: str
-    thumbnail_url: str
     is_published: bool
     category_id: int
 
@@ -23,6 +22,7 @@ class ProductUpdate(ProductBase):
 
 class ProductOut(ProductBase):
     id: int
+    thumbnail_url: str
 
 
 class ProductResponse(BaseModel):
