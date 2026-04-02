@@ -9,19 +9,20 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Protocol
 
-from shop.app.schemas.cart_item_schemas import CartItemOut
-from shop.app.schemas.cart_schemas import CartOut
-from shop.app.schemas.category_schemas import CategoryOut
-from shop.app.schemas.event_log_schemas import EventLogOut
-from shop.app.schemas.order_item_schemas import OrderItemOut
-from shop.app.schemas.order_schemas import OrderOut
-from shop.app.schemas.product_image_schemas import ProductImageOut
-from shop.app.schemas.product_schemas import ProductOut
-from shop.app.schemas.product_specification_schemas import ProductSpecificationOut
-from shop.app.schemas.refresh_token_schemas import RefreshTokenOut
-from shop.app.schemas.review_schemas import ReviewOut
-from shop.app.schemas.role_schemas import RoleOut
-from shop.app.schemas.user_schemas import UserDB, UserOut
+from shop.app.models.domain.product_image import ProductImageCreateData
+from shop.app.models.schemas import CartItemOut
+from shop.app.models.schemas import CartOut
+from shop.app.models.schemas import CategoryOut
+from shop.app.models.schemas import EventLogOut
+from shop.app.models.schemas import OrderItemOut
+from shop.app.models.schemas import OrderOut
+from shop.app.models.schemas import ProductImageOut
+from shop.app.models.schemas import ProductOut
+from shop.app.models.schemas import ProductSpecificationOut
+from shop.app.models.schemas import RefreshTokenOut
+from shop.app.models.schemas import ReviewOut
+from shop.app.models.schemas import RoleOut
+from shop.app.models.schemas import UserDB, UserOut
 
 
 class CategoryRepository(Protocol):
@@ -71,7 +72,9 @@ class RoleRepository(Protocol):
 
 class ProductSpecificationRepository(Protocol):
     async def get_all(self) -> list[ProductSpecificationOut]: ...
-    async def get_by_id(self, specification_id: int) -> ProductSpecificationOut | None: ...
+    async def get_by_id(
+        self, specification_id: int
+    ) -> ProductSpecificationOut | None: ...
     async def get_by_product_id(
         self, product_id: int
     ) -> ProductSpecificationOut | None: ...
@@ -83,7 +86,7 @@ class ProductSpecificationRepository(Protocol):
 class ProductImageRepository(Protocol):
     async def get_by_product_id(self, product_id: int) -> list[ProductImageOut]: ...
     async def get_by_id(self, image_id: int) -> ProductImageOut | None: ...
-    async def create(self, data: dict) -> int: ...
+    async def create(self, product: ProductImageCreateData) -> int: ...
     async def update(self, image_id: int, data: dict) -> bool: ...
     async def delete(self, image_id: int) -> bool: ...
     async def delete_by_product_id(self, product_id: int) -> list[int]: ...
@@ -191,16 +194,32 @@ class UnitOfWork(Protocol):
 
 class EventLogAnalyticsRepository(Protocol):
     async def aggregate_activity_by_period(
-        self, period: str,
+        self,
+        period: str,
         time_from: datetime | None = None,
         time_to: datetime | None = None,
     ) -> list[dict]: ...
     async def aggregate_top_users(self, limit: int = 10) -> list[dict]: ...
     async def aggregate_event_type_stats(self) -> list[dict]: ...
     async def aggregate_time_series(
-        self, time_from: datetime, time_to: datetime,
+        self,
+        time_from: datetime,
+        time_to: datetime,
         granularity: str = "hour",
     ) -> list[dict]: ...
     async def aggregate_user_anomalies(
-        self, time_from: datetime, std_threshold: float = 2.0,
+        self,
+        time_from: datetime,
+        std_threshold: float = 2.0,
     ) -> list[dict]: ...
+
+
+class S3ServiceProtocol(Protocol):
+    async def upload_object(
+        self,
+        object_name: str,
+        content: bytes,
+        content_type: str | None = None,
+    ) -> str: ...
+    async def get_object_url(self, object_name: str, expires_in: int = 3600) -> str: ...
+    async def delete_object(self, object_name: str) -> None: ...
