@@ -50,3 +50,21 @@ class DomainValidationError(AppError):
     """Нарушение бизнес-правила валидации."""
 
     pass
+
+
+class S3Error(AppError):
+    """Ошибка S3"""
+
+    pass
+
+
+class S3UploadError(S3Error):
+    """Ошибка загрузки в S3"""
+
+    pass
+
+
+class S3DeleteError(S3Error):
+    """Ошибка удаления из S3"""
+
+    pass
