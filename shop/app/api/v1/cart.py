@@ -2,9 +2,9 @@ from fastapi import APIRouter, Body, Depends, Path, Request, status
 
 from shop.app.dependencies.auth import get_current_user
 from shop.app.dependencies.services import get_cart_service, get_event_log_service
-from shop.app.schemas.cart_item_schemas import CartItemAdd, CartItemQuantityUpdate
-from shop.app.schemas.cart_schemas import CartWithItems
-from shop.app.schemas.user_schemas import UserOut
+from shop.app.models.schemas import CartItemAdd, CartItemQuantityUpdate
+from shop.app.models.schemas import CartWithItems
+from shop.app.models.schemas import UserOut
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.cart_service import CartService
 
@@ -97,6 +97,3 @@ async def clear_cart(
         request=request,
     )
     return cart
-
-
-

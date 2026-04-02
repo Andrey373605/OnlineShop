@@ -3,8 +3,8 @@ from fastapi import APIRouter, Body, Depends, Path, Request, status
 from shop.app.dependencies.auth import get_current_user
 from shop.app.dependencies.pagination import CommonPaginationParams
 from shop.app.dependencies.services import get_event_log_service, get_review_service
-from shop.app.schemas.review_schemas import ReviewCreate, ReviewOut, ReviewUpdate
-from shop.app.schemas.user_schemas import UserOut
+from shop.app.models.schemas import ReviewCreate, ReviewOut, ReviewUpdate
+from shop.app.models.schemas import UserOut
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.review_service import ReviewService
 from shop.app.utils.ensure_admin import is_admin
@@ -105,5 +105,3 @@ async def delete_review(
         description=f"Review #{review_id} deleted by {current_user.username}",
         request=request,
     )
-
-

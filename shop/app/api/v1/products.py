@@ -4,17 +4,15 @@ from fastapi import APIRouter, Depends, File, Form, Path, Request, UploadFile
 
 from shop.app.dependencies.auth import get_current_user
 from shop.app.dependencies.pagination import CommonPaginationParams
-from shop.app.dependencies.s3 import get_s3_service
 from shop.app.dependencies.services import get_event_log_service, get_product_service
-from shop.app.schemas.product_schemas import (
+from shop.app.models.schemas import (
     ProductResponse,
     ProductCreate,
     ProductUpdate,
 )
-from shop.app.schemas.user_schemas import UserOut
+from shop.app.models.schemas import UserOut
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.product_service import ProductService
-from shop.app.services.s3_service import S3Service
 from shop.app.utils.ensure_admin import _ensure_admin
 
 router = APIRouter(prefix="/products", tags=["Products"])

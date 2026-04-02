@@ -2,13 +2,12 @@ from fastapi import APIRouter, Body, Depends, Path, Query, Request, status
 
 from shop.app.dependencies.auth import get_current_user
 from shop.app.dependencies.services import get_event_log_service, get_user_service
-from shop.app.schemas.user_schemas import UserCreate, UserOut, UserUpdate
+from shop.app.models.schemas import UserCreate, UserOut, UserUpdate
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.user_service import UserService
 from shop.app.utils.ensure_admin import _ensure_admin
 
 router = APIRouter(prefix="/users", tags=["Users"])
-
 
 
 @router.get(
@@ -103,6 +102,3 @@ async def delete_user(
         description=f"User #{user_id} deleted by {current_user.username}",
         request=request,
     )
-
-
-

@@ -7,20 +7,19 @@ from shop.app.dependencies.services import (
     get_order_item_service,
     get_order_service,
 )
-from shop.app.schemas.order_item_schemas import (
+from shop.app.models.schemas import (
     OrderItemCreate,
     OrderItemOut,
     OrderItemUpdate,
 )
-from shop.app.schemas.order_schemas import OrderCreate, OrderOut, OrderUpdate
-from shop.app.schemas.user_schemas import UserOut
+from shop.app.models.schemas import OrderCreate, OrderOut, OrderUpdate
+from shop.app.models.schemas import UserOut
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.order_item_service import OrderItemService
 from shop.app.services.order_service import OrderService
 from shop.app.utils.ensure_admin import _ensure_admin
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
-
 
 
 @router.get("/", response_model=list[OrderOut])
@@ -205,6 +204,3 @@ async def delete_order_item(
         description=f"Item #{item_id} removed from order #{order_id}",
         request=request,
     )
-
-
-

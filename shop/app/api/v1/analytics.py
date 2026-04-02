@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 
 from shop.app.dependencies.auth import get_current_user
 from shop.app.dependencies.services import get_event_log_analytics_service
-from shop.app.schemas.analytics_schemas import (
+from shop.app.models.schemas import (
     ActivityByPeriod,
     EventTypeStats,
     PeriodEnum,
@@ -14,7 +14,7 @@ from shop.app.schemas.analytics_schemas import (
     TopUser,
     UserAnomaly,
 )
-from shop.app.schemas.user_schemas import UserOut
+from shop.app.models.schemas import UserOut
 from shop.app.services.event_log_analytics_service import EventLogAnalyticsService
 from shop.app.utils.ensure_admin import _ensure_admin
 

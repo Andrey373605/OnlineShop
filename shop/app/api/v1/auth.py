@@ -4,10 +4,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from shop.app.dependencies.auth import get_current_user, oauth2_scheme
 from shop.app.dependencies.services import get_auth_service, get_event_log_service
 from shop.app.dependencies.session import get_session_service
-from shop.app.schemas.event_log_schemas import EventType
-from shop.app.schemas.session_schemas import SessionInfo, SessionListResponse
+from shop.app.models.schemas import EventType
+from shop.app.models.schemas import SessionInfo, SessionListResponse
 from shop.app.services.event_log_service import EventLogService
-from shop.app.schemas.auth_schemas import (
+from shop.app.models.schemas import (
     AuthResponse,
     LoginRequest,
     LogoutRequest,
@@ -17,7 +17,7 @@ from shop.app.schemas.auth_schemas import (
     RegisterResponse,
     TokenPair,
 )
-from shop.app.schemas.user_schemas import UserOut
+from shop.app.models.schemas import UserOut
 from shop.app.services.auth_service import AuthService
 from shop.app.services.session_service import SessionService
 from shop.app.core.security import decode_token
@@ -136,7 +136,9 @@ async def logout_user(
 
 
 @router.get("/me", response_model=UserOut)
-async def read_current_user(current_user: UserOut = Depends(get_current_user)) -> UserOut:
+async def read_current_user(
+    current_user: UserOut = Depends(get_current_user),
+) -> UserOut:
     return current_user
 
 
