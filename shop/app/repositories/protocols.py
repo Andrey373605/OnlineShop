@@ -212,14 +212,3 @@ class EventLogAnalyticsRepository(Protocol):
         time_from: datetime,
         std_threshold: float = 2.0,
     ) -> list[dict]: ...
-
-
-class S3ServiceProtocol(Protocol):
-    async def upload_object(
-        self,
-        object_name: str,
-        content: bytes,
-        content_type: str | None = None,
-    ) -> str: ...
-    async def get_object_url(self, object_name: str, expires_in: int = 3600) -> str: ...
-    async def delete_object(self, object_name: str) -> None: ...

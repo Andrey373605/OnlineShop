@@ -58,15 +58,20 @@ class Settings(BaseSettings):
     CATEGORIES_CACHE_TTL_SECONDS: int = 300
     PRODUCTS_CACHE_TTL_SECONDS: int = 120
     ANALYTICS_CACHE_TTL_SECONDS: int = 60
-    USER_SESSION_CACHE_TTL_SECONDS: int = 1800 
+    USER_SESSION_CACHE_TTL_SECONDS: int = 1800
 
     # Minio settings
     MINIO_HOST: str = "localhost"
     MINIO_PORT: int = 9000
-    MINIO_ROOT_USER: str
-    MINIO_ROOT_PASSWORD: str
-    MINIO_BUCKET: str = "shop"
+    MINIO_ROOT_USER: str = "minioadmin"
+    MINIO_ROOT_PASSWORD: str = "minioadmin"
+    MINIO_BUCKET: str = "product-images"
     MINIO_USE_SSL: bool = False
+    MINIO_ACCESS_KEY: str = "minioadmin"
+    MINIO_SECRET_KEY: str = "minioadmin"
+    MEDIA_URL_PREFIX: str = "/media"
+    IMAGE_MAX_SIZE_BYTES: int = 5 * 1024 * 1024
+    IMAGE_ALLOWED_EXTENSIONS: str = "jpeg,png,webp,gif"
 
     # Event log retention (MongoDB TTL)
     EVENT_LOG_TTL_DAYS: int = 30
@@ -101,6 +106,14 @@ class Settings(BaseSettings):
     def MINIO_URL(self) -> str:
         scheme = "https" if self.MINIO_USE_SSL else "http"
         return f"{scheme}://{self.MINIO_HOST}:{self.MINIO_PORT}"
+
+    @property
+    def image_allowed_extensions(self) -> set[str]:
+        return {
+            item.strip()
+            for item in self.IMAGE_ALLOWED_EXTENSIONS.split(",")
+            if item.strip()
+        }
 
     model_config = ConfigDict(
         env_file=".env",

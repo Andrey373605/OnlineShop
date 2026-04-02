@@ -1,22 +1,20 @@
 from fastapi import APIRouter, Depends, File, Form, Path, Request, UploadFile, status
 
 from shop.app.dependencies.auth import get_current_user
-from shop.app.dependencies.s3 import get_s3_service
 from shop.app.dependencies.services import (
     get_event_log_service,
     get_product_image_service,
 )
-from shop.app.schemas.product_image_schemas import (
+from shop.app.models.schemas import (
     ProductImageCreate,
     ProductImageOut,
     ProductImageResponse,
     ProductImageUpdate,
     ProductImagesDeleteResponse,
 )
-from shop.app.schemas.user_schemas import UserOut
+from shop.app.models.schemas import UserOut
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.product_image_service import ProductImageService
-from shop.app.services.s3_service import S3Service
 from shop.app.utils.ensure_admin import _ensure_admin
 
 router = APIRouter(prefix="/product-images", tags=["Product Images"])

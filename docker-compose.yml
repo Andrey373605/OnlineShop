@@ -11,10 +11,13 @@ services:
       MINIO_HOST: minio
     expose:
       - "8000"
+    ports:
+      - "8080:8000"
     depends_on:
       - database
       - redis
       - mongodb
+      - minio
 
   app2:
     build:
@@ -32,6 +35,7 @@ services:
       - database
       - redis
       - mongodb
+      - minio
 
   app3:
     build:
@@ -49,6 +53,7 @@ services:
       - database
       - redis
       - mongodb
+      - minio
 
   database:
     image: postgres:15-alpine

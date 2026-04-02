@@ -5,14 +5,16 @@ from shop.app.core.exceptions import (
     NotFoundError,
     OperationFailedError,
 )
-from shop.app.repositories.protocols import UnitOfWork
-from shop.app.schemas.product_image_schemas import (
+from shop.app.models.schemas import (
     ProductImageCreate,
-    ProductImageOut,
     ProductImageResponse,
+    ProductImageOut,
     ProductImageUpdate,
     ProductImagesDeleteResponse,
 )
+from shop.app.models.domain.product_image import ProductImageCreateData
+from shop.app.repositories.protocols import UnitOfWork
+
 from shop.app.services.s3_service import S3Service
 
 
@@ -26,8 +28,12 @@ class ProductImageService:
     ) -> ProductImageResponse:
         async with self._uow as uow:
             await self._ensure_product_exists(uow, data.product_id)
-
-            image_id = await uow.product_images.create(data.model_dump())
+            image_name = await self._s3.upload_file(file)
+            image_path = f"/media/{image_name}"
+            db_data = ProductImageCreateData(
+                product_id=data.product_id, image_path=image_path
+            )
+            image_id = await uow.product_images.create(db_data)
             if not image_id:
                 raise OperationFailedError("Failed to create product image")
             await uow.commit()
@@ -77,7 +83,7 @@ class ProductImageService:
             if not success:
                 raise OperationFailedError("Failed to delete product image")
             await uow.commit()
-        await self._s3.delete_by_media_url(image.image_path)
+        await self._s3.delete_file(image.image_path)
 
         return ProductImageResponse(
             id=image_id,
@@ -94,7 +100,7 @@ class ProductImageService:
             deleted_ids = await uow.product_images.delete_by_product_id(product_id)
             await uow.commit()
         for image in images:
-            await self._s3.delete_by_media_url(image.image_path)
+            await self._s3.delete_file(image.image_path)
 
         return ProductImagesDeleteResponse(
             product_id=product_id,

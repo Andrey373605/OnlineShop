@@ -23,7 +23,7 @@ dependencies = [
     "redis>=5.0.0",
     "motor>=3.7.1",
     "tzdata>=2024.1",
-    "aioboto3>=13.0.0"
+    "aiobotocore"
 ]
 
 [dependency-groups]
