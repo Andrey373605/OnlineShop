@@ -6,9 +6,9 @@ from shop.app.core.exceptions import (
     OperationFailedError,
 )
 from shop.app.repositories.protocols import UnitOfWork
-from shop.app.schemas.cart_item_schemas import CartItemAdd, CartItemQuantityUpdate, CartItemOut
-from shop.app.schemas.cart_schemas import CartWithItems, CartOut
-from shop.app.schemas.product_schemas import ProductOut
+from shop.app.models.schemas import CartItemAdd, CartItemQuantityUpdate, CartItemOut
+from shop.app.models.schemas import CartWithItems, CartOut
+from shop.app.models.schemas import ProductOut
 
 
 class CartService:
@@ -53,10 +53,10 @@ class CartService:
             return result
 
     async def update_item_quantity(
-            self,
-            user_id: int,
-            item_id: int,
-            data: CartItemQuantityUpdate,
+        self,
+        user_id: int,
+        item_id: int,
+        data: CartItemQuantityUpdate,
     ) -> CartWithItems:
         async with self._uow as uow:
             cart = await self._ensure_cart(uow, user_id)
@@ -118,8 +118,7 @@ class CartService:
     async def _recalculate_total(uow: UnitOfWork, cart_id: int) -> Decimal:
         items = await uow.cart_items.get_by_cart_id(cart_id)
         total = sum(
-            (item.product_price or Decimal("0")) * item.quantity
-            for item in items
+            (item.product_price or Decimal("0")) * item.quantity for item in items
         )
         await uow.carts.update(
             cart_id,
@@ -136,9 +135,9 @@ class CartService:
 
     @staticmethod
     async def _get_cart_item_or_raise(
-            uow: UnitOfWork,
-            item_id: int,
-            cart_id: int,
+        uow: UnitOfWork,
+        item_id: int,
+        cart_id: int,
     ) -> CartItemOut:
         cart_item = await uow.cart_items.get_by_id(item_id)
         if not cart_item or cart_item.cart_id != cart_id:

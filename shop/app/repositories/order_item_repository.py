@@ -1,4 +1,4 @@
-from shop.app.schemas.order_item_schemas import OrderItemOut
+from shop.app.models.schemas import OrderItemOut
 
 
 class OrderItemRepositorySql:
@@ -39,5 +39,3 @@ class OrderItemRepositorySql:
             order_id=order_id,
         )
         return [row["id"] for row in rows]
-
-

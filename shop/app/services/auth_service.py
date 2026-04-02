@@ -20,7 +20,7 @@ from shop.app.core.config import settings
 from shop.app.repositories.protocols import UnitOfWork
 from shop.app.services.cache_service import CacheService
 from shop.app.services.session_service import SessionService
-from shop.app.schemas.auth_schemas import (
+from shop.app.models.schemas import (
     AuthResponse,
     AuthUserOut,
     LoginRequest,
@@ -31,7 +31,7 @@ from shop.app.schemas.auth_schemas import (
     RegisterResponse,
     TokenPair,
 )
-from shop.app.schemas.user_schemas import UserOut
+from shop.app.models.schemas import UserOut
 
 
 class AuthService:
@@ -71,7 +71,9 @@ class AuthService:
 
             safe_user = await self._reload_user(uow, user.id)
             session_id = await self._session_service.create_session(
-                safe_user, ip_address=ip_address, user_agent=user_agent,
+                safe_user,
+                ip_address=ip_address,
+                user_agent=user_agent,
             )
             tokens = await self._issue_tokens(uow, safe_user, session_id=session_id)
             await uow.commit()
@@ -83,9 +85,13 @@ class AuthService:
 
         async with self._uow as uow:
             token_hash = hash_token(payload.refresh_token)
-            stored_token = await self._get_refresh_session_or_unauthorized(uow, token_hash)
+            stored_token = await self._get_refresh_session_or_unauthorized(
+                uow, token_hash
+            )
 
-            user = await self._get_user_for_refresh(uow, stored_token.user_id, token_data)
+            user = await self._get_user_for_refresh(
+                uow, stored_token.user_id, token_data
+            )
             await uow.refresh_tokens.delete(stored_token.id)
 
             old_session_id = token_data.get("sid")
@@ -98,7 +104,9 @@ class AuthService:
 
         return RefreshResponse(**tokens.model_dump())
 
-    async def logout(self, payload: LogoutRequest, session_id: str | None = None) -> None:
+    async def logout(
+        self, payload: LogoutRequest, session_id: str | None = None
+    ) -> None:
         async with self._uow as uow:
             token_hash = hash_token(payload.refresh_token)
             rows = await uow.refresh_tokens.delete_by_hash(token_hash)
@@ -114,7 +122,9 @@ class AuthService:
     # ---------- Internal helpers ----------
 
     @staticmethod
-    async def _ensure_unique_credentials(uow: UnitOfWork, username: str, email: str) -> None:
+    async def _ensure_unique_credentials(
+        uow: UnitOfWork, username: str, email: str
+    ) -> None:
         if await uow.users.exists_with_username(username):
             raise AlreadyExistsError("Username")
         if await uow.users.exists_with_email(email):
@@ -151,7 +161,9 @@ class AuthService:
             raise OperationFailedError("Unable to fetch created user")
         return user
 
-    async def _authenticate_user(self, uow: UnitOfWork, payload: LoginRequest) -> UserOut:
+    async def _authenticate_user(
+        self, uow: UnitOfWork, payload: LoginRequest
+    ) -> UserOut:
         if await self._cache.is_blacklisted(payload.username):
             raise PermissionDeniedError(
                 "Account temporarily blocked due to too many failed login "
@@ -201,7 +213,9 @@ class AuthService:
         return stored_token
 
     @staticmethod
-    async def _get_user_for_refresh(uow: UnitOfWork, user_id: int, token_data: dict) -> UserOut:
+    async def _get_user_for_refresh(
+        uow: UnitOfWork, user_id: int, token_data: dict
+    ) -> UserOut:
         token_user_id = int(token_data.get("sub"))
         if user_id != token_user_id:
             raise AuthenticationError("Refresh token mismatch")
@@ -246,9 +260,10 @@ class AuthService:
             extra_data={"username": user.username, "sid": session_id},
         )
 
-        expires_at = (datetime.now(timezone.utc) + timedelta(
-            days=settings.REFRESH_TOKEN_EXPIRE_DAYS
-        )).replace(tzinfo=None)
+        expires_at = (
+            datetime.now(timezone.utc)
+            + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        ).replace(tzinfo=None)
         await uow.refresh_tokens.create(
             {
                 "user_id": user.id,

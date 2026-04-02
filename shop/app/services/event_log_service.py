@@ -1,10 +1,9 @@
 import logging
-from typing import Any
 
 from fastapi import Request
 
 from shop.app.repositories.protocols import EventLogRepository
-from shop.app.schemas.event_log_schemas import (
+from shop.app.models.schemas import (
     EventLogCreate,
     EventLogFilter,
     EventLogListOut,

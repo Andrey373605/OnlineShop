@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from redis.asyncio import Redis
 
-from shop.app.schemas.user_schemas import UserOut
+from shop.app.models.schemas import UserOut
 
 
 class SessionService:

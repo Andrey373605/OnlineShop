@@ -4,7 +4,7 @@ from shop.app.core.exceptions import (
     OperationFailedError,
 )
 from shop.app.repositories.protocols import UnitOfWork
-from shop.app.schemas.order_item_schemas import (
+from shop.app.models.schemas import (
     OrderItemCreate,
     OrderItemOut,
     OrderItemUpdate,
@@ -28,9 +28,9 @@ class OrderItemService:
             return item
 
     async def create_order_item(
-            self,
-            order_id: int,
-            data: OrderItemCreate,
+        self,
+        order_id: int,
+        data: OrderItemCreate,
     ) -> OrderItemOut:
         async with self._uow as uow:
             self._validate_order_item_request(order_id, data.order_id)
@@ -41,15 +41,17 @@ class OrderItemService:
             payload["order_id"] = order_id
 
             item_id = await uow.order_items.create(payload)
-            item = await self._get_item_or_fail(uow, item_id, "Unable to fetch created order item")
+            item = await self._get_item_or_fail(
+                uow, item_id, "Unable to fetch created order item"
+            )
             await uow.commit()
             return item
 
     async def update_order_item(
-            self,
-            order_id: int,
-            item_id: int,
-            data: OrderItemUpdate,
+        self,
+        order_id: int,
+        item_id: int,
+        data: OrderItemUpdate,
     ) -> OrderItemOut:
         async with self._uow as uow:
             item = await self._get_item_or_raise(uow, item_id)
@@ -69,7 +71,9 @@ class OrderItemService:
             if not updated:
                 raise OperationFailedError("Failed to update order item")
 
-            item = await self._get_item_or_fail(uow, item_id, "Unable to fetch updated order item")
+            item = await self._get_item_or_fail(
+                uow, item_id, "Unable to fetch updated order item"
+            )
             await uow.commit()
             return item
 
@@ -105,7 +109,9 @@ class OrderItemService:
         return item
 
     @staticmethod
-    async def _get_item_or_fail(uow: UnitOfWork, item_id: int, detail: str) -> OrderItemOut:
+    async def _get_item_or_fail(
+        uow: UnitOfWork, item_id: int, detail: str
+    ) -> OrderItemOut:
         item = await uow.order_items.get_by_id(item_id)
         if not item:
             raise OperationFailedError(detail)
@@ -113,8 +119,8 @@ class OrderItemService:
 
     @staticmethod
     def _validate_order_item_request(
-            path_order_id: int,
-            body_order_id: int | None,
+        path_order_id: int,
+        body_order_id: int | None,
     ) -> None:
         if body_order_id is not None and body_order_id != path_order_id:
             raise DomainValidationError("order_id mismatch between path and body")

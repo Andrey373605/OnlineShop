@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from shop.app.schemas.event_log_schemas import EventLogOut
+from shop.app.models.schemas import EventLogOut
 
 
 class EventLogRepositorySql:
@@ -65,5 +65,3 @@ class EventLogRepositorySql:
     async def delete(self, event_id: int) -> bool:
         result = await self._queries.delete_event_log(self._conn, id=event_id)
         return bool(result)
-
-

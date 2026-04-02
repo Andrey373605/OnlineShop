@@ -1,4 +1,4 @@
-from shop.app.schemas.order_schemas import OrderOut
+from shop.app.models.schemas import OrderOut
 
 
 class OrderRepositorySql:
@@ -44,5 +44,3 @@ class OrderRepositorySql:
     async def delete(self, order_id: int) -> bool:
         result = await self._queries.delete_order(self._conn, id=order_id)
         return bool(result)
-
-

@@ -1,4 +1,4 @@
-from shop.app.schemas.refresh_token_schemas import RefreshTokenOut
+from shop.app.models.schemas import RefreshTokenOut
 
 
 class RefreshTokenRepositorySql:
@@ -41,5 +41,3 @@ class RefreshTokenRepositorySql:
             user_id=user_id,
         )
         return [row["id"] for row in rows]
-
-

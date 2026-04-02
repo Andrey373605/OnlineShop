@@ -1,4 +1,6 @@
-from shop.app.schemas.product_specification_schemas import ProductSpecificationOut
+from shop.app.models.schemas import (
+    ProductSpecificationOut,
+)
 
 
 class ProductSpecificationRepositorySql:
@@ -17,7 +19,9 @@ class ProductSpecificationRepositorySql:
         )
         return ProductSpecificationOut(**row) if row else None
 
-    async def get_by_product_id(self, product_id: int) -> ProductSpecificationOut | None:
+    async def get_by_product_id(
+        self, product_id: int
+    ) -> ProductSpecificationOut | None:
         row = await self._queries.get_product_specification_by_product_id(
             self._conn,
             product_id=product_id,
@@ -45,5 +49,3 @@ class ProductSpecificationRepositorySql:
             id=specification_id,
         )
         return bool(result)
-
-

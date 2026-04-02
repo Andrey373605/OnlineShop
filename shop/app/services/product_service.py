@@ -2,7 +2,7 @@ from fastapi import UploadFile
 
 from shop.app.core.exceptions import NotFoundError, OperationFailedError
 from shop.app.repositories.protocols import UnitOfWork
-from shop.app.schemas.product_schemas import (
+from shop.app.models.schemas import (
     ProductCreate,
     ProductOut,
     ProductResponse,

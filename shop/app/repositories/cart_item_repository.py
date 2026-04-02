@@ -1,5 +1,4 @@
-
-from shop.app.schemas.cart_item_schemas import CartItemOut
+from shop.app.models.schemas import CartItemOut
 
 
 class CartItemRepositorySql:
@@ -48,5 +47,3 @@ class CartItemRepositorySql:
             cart_id=cart_id,
         )
         return [row["id"] for row in rows]
-
-

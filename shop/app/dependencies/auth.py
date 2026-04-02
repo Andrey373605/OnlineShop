@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 
 from shop.app.core.security import decode_token
 from shop.app.dependencies.session import get_session_service
-from shop.app.schemas.user_schemas import UserOut
+from shop.app.models.schemas import UserOut
 from shop.app.services.session_service import SessionService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")

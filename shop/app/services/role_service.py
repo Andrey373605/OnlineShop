@@ -4,7 +4,7 @@ from shop.app.core.exceptions import (
     OperationFailedError,
 )
 from shop.app.repositories.protocols import UnitOfWork
-from shop.app.schemas.role_schemas import (
+from shop.app.models.schemas import (
     RoleCreate,
     RoleOut,
     RoleResponse,

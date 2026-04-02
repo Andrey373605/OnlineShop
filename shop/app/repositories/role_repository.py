@@ -1,4 +1,4 @@
-from shop.app.schemas.role_schemas import RoleOut
+from shop.app.models.schemas import RoleOut
 
 
 class RoleRepositorySql:
@@ -33,5 +33,3 @@ class RoleRepositorySql:
     async def exists_with_name(self, name: str) -> bool:
         result = await self._queries.check_role_name_exists(self._conn, name=name)
         return result["exists"]
-
-

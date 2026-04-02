@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 from shop.app.repositories.protocols import EventLogAnalyticsRepository
-from shop.app.schemas.analytics_schemas import (
+from shop.app.models.schemas import (
     ActivityByPeriod,
     EventTypeStats,
     TimeSeriesPoint,
@@ -18,7 +18,8 @@ class EventLogAnalyticsService:
         self._repo = repo
 
     async def activity_by_period(
-        self, period: str,
+        self,
+        period: str,
         time_from: datetime | None = None,
         time_to: datetime | None = None,
     ) -> list[ActivityByPeriod]:
@@ -34,18 +35,21 @@ class EventLogAnalyticsService:
         return [EventTypeStats(**r) for r in rows]
 
     async def time_series(
-        self, time_from: datetime, time_to: datetime,
+        self,
+        time_from: datetime,
+        time_to: datetime,
         granularity: str = "hour",
     ) -> list[TimeSeriesPoint]:
         rows = await self._repo.aggregate_time_series(time_from, time_to, granularity)
         return [TimeSeriesPoint(**r) for r in rows]
 
     async def user_anomalies(
-        self, time_from: datetime, std_threshold: float = 2.0,
+        self,
+        time_from: datetime,
+        std_threshold: float = 2.0,
     ) -> list[UserAnomaly]:
         rows = await self._repo.aggregate_user_anomalies(time_from, std_threshold)
         return [UserAnomaly(**r) for r in rows]
-
 
     @staticmethod
     def to_json(data: list) -> str:

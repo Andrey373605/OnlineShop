@@ -4,7 +4,7 @@ from shop.app.core.exceptions import (
     OperationFailedError,
 )
 from shop.app.repositories.protocols import UnitOfWork
-from shop.app.schemas.order_schemas import OrderCreate, OrderOut, OrderUpdate
+from shop.app.models.schemas import OrderCreate, OrderOut, OrderUpdate
 
 
 class OrderService:
@@ -25,7 +25,9 @@ class OrderService:
                 raise AlreadyExistsError("Order number")
 
             order_id = await uow.orders.create(data.model_dump())
-            order = await self._get_order_or_fail(uow, order_id, "Unable to fetch created order")
+            order = await self._get_order_or_fail(
+                uow, order_id, "Unable to fetch created order"
+            )
             await uow.commit()
             return order
 
@@ -38,7 +40,9 @@ class OrderService:
             if not updated:
                 raise OperationFailedError("Failed to update order")
 
-            order = await self._get_order_or_fail(uow, order_id, "Unable to fetch updated order")
+            order = await self._get_order_or_fail(
+                uow, order_id, "Unable to fetch updated order"
+            )
             await uow.commit()
             return order
 
@@ -59,7 +63,9 @@ class OrderService:
         return order
 
     @staticmethod
-    async def _get_order_or_fail(uow: UnitOfWork, order_id: int, detail: str) -> OrderOut:
+    async def _get_order_or_fail(
+        uow: UnitOfWork, order_id: int, detail: str
+    ) -> OrderOut:
         order = await uow.orders.get_by_id(order_id)
         if not order:
             raise OperationFailedError(detail)

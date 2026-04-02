@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from shop.app.schemas.user_schemas import UserDB, UserOut
+from shop.app.models.schemas import UserDB, UserOut
 
 
 class UserRepositorySql:
@@ -43,11 +43,11 @@ class UserRepositorySql:
         )
         return bool(result)
 
-    async def update_last_login(self, user_id: int, last_login: datetime | None = None) -> bool:
+    async def update_last_login(
+        self, user_id: int, last_login: datetime | None = None
+    ) -> bool:
         result = await self._queries.update_last_login(
-            self._conn,
-            id=user_id,
-            last_login=last_login
+            self._conn, id=user_id, last_login=last_login
         )
         return bool(result)
 
@@ -68,5 +68,3 @@ class UserRepositorySql:
             email=email,
         )
         return row["exists"]
-
-

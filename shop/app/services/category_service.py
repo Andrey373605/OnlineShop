@@ -4,7 +4,7 @@ from shop.app.core.exceptions import (
     OperationFailedError,
 )
 from shop.app.repositories.protocols import UnitOfWork
-from shop.app.schemas.category_schemas import (
+from shop.app.models.schemas import (
     CategoryCreate,
     CategoryOut,
     CategoryResponse,
@@ -73,12 +73,16 @@ class CategoryService:
         )
         return categories
 
-    async def update_category(self, category_id: int, data: CategoryUpdate) -> CategoryResponse:
+    async def update_category(
+        self, category_id: int, data: CategoryUpdate
+    ) -> CategoryResponse:
         async with self._uow as uow:
             if not await uow.categories.exists_category_with_id(category_id):
                 raise NotFoundError("Category")
 
-            success = await uow.categories.update(category_id, data.model_dump(exclude_unset=True))
+            success = await uow.categories.update(
+                category_id, data.model_dump(exclude_unset=True)
+            )
             if not success:
                 raise OperationFailedError("Failed to update category")
             await uow.commit()

@@ -1,4 +1,4 @@
-from shop.app.schemas.review_schemas import ReviewOut
+from shop.app.models.schemas import ReviewOut
 
 
 class ReviewRepositorySql:
@@ -45,5 +45,3 @@ class ReviewRepositorySql:
     async def delete(self, review_id: int) -> bool:
         result = await self._queries.delete_review(self._conn, id=review_id)
         return bool(result)
-
-

@@ -1,4 +1,4 @@
-from shop.app.schemas.cart_schemas import CartOut
+from shop.app.models.schemas import CartOut
 
 
 class CartRepositorySql:
@@ -36,5 +36,3 @@ class CartRepositorySql:
     async def delete(self, cart_id: int) -> bool:
         result = await self._queries.delete_cart(self._conn, id=cart_id)
         return bool(result)
-
-

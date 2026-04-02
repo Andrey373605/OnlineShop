@@ -1,6 +1,6 @@
 from shop.app.core.config import settings
 from shop.app.core.exceptions import PermissionDeniedError
-from shop.app.schemas.user_schemas import UserOut
+from shop.app.models.schemas import UserOut
 
 
 def is_admin(user: UserOut) -> bool:

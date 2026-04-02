@@ -5,7 +5,7 @@ from shop.app.core.exceptions import (
 )
 from shop.app.core.security import hash_password
 from shop.app.repositories.protocols import UnitOfWork
-from shop.app.schemas.user_schemas import (
+from shop.app.models.schemas import (
     UserCreate,
     UserOut,
     UserUpdate,
@@ -49,7 +49,9 @@ class UserService:
             users = await uow.users.get_all(limit=limit, offset=offset)
 
         users_str = [u.model_dump_json() for u in users]
-        await self._cache.set_list_atomic(key, users_str, ttl_seconds=self._cache_ttl_seconds)
+        await self._cache.set_list_atomic(
+            key, users_str, ttl_seconds=self._cache_ttl_seconds
+        )
         return users
 
     async def create_user(self, payload: UserCreate) -> UserOut:

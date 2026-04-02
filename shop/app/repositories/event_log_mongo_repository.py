@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorDatabase
 
 from shop.app.core.config import settings
-from shop.app.schemas.event_log_schemas import EventLogOut
+from shop.app.models.schemas import EventLogOut
 
 
 def _event_log_now() -> datetime:
@@ -70,9 +70,7 @@ class EventLogRepositoryMongo:
     async def get_by_user_id(
         self, user_id: int, limit: int, offset: int
     ) -> list[EventLogOut]:
-        cursor = (
-            self.collection.find({"user_id": user_id}).skip(offset).limit(limit)
-        )
+        cursor = self.collection.find({"user_id": user_id}).skip(offset).limit(limit)
         docs = await cursor.to_list(length=limit)
         return [self._to_out(d) for d in docs]
 
@@ -94,10 +92,7 @@ class EventLogRepositoryMongo:
         )
         total = await self.collection.count_documents(query)
         cursor = (
-            self.collection.find(query)
-            .sort("created_at", -1)
-            .skip(offset)
-            .limit(limit)
+            self.collection.find(query).sort("created_at", -1).skip(offset).limit(limit)
         )
         docs = await cursor.to_list(length=limit)
         return [self._to_out(d) for d in docs], total
@@ -107,7 +102,7 @@ class EventLogRepositoryMongo:
             {"_id": counter_name},
             {"$inc": {"seq": 1}},
             upsert=True,
-            return_document=True
+            return_document=True,
         )
         return result["seq"]
 

@@ -6,7 +6,7 @@ from shop.app.core.exceptions import (
     PermissionDeniedError,
 )
 from shop.app.repositories.protocols import UnitOfWork
-from shop.app.schemas.review_schemas import ReviewCreate, ReviewOut, ReviewUpdate
+from shop.app.models.schemas import ReviewCreate, ReviewOut, ReviewUpdate
 
 
 class ReviewService:
@@ -22,9 +22,9 @@ class ReviewService:
             return await self._get_review_or_raise(uow, review_id)
 
     async def create_review(
-            self,
-            user_id: int,
-            data: ReviewCreate,
+        self,
+        user_id: int,
+        data: ReviewCreate,
     ) -> ReviewOut:
         self._validate_rating_value(data.rating)
         async with self._uow as uow:
@@ -36,7 +36,9 @@ class ReviewService:
                 product_id=data.product_id,
             )
             if existing:
-                raise AlreadyExistsError("Review", "Review for this product already exists")
+                raise AlreadyExistsError(
+                    "Review", "Review for this product already exists"
+                )
 
             payload = data.model_dump()
             payload["user_id"] = user_id
@@ -46,11 +48,11 @@ class ReviewService:
             return review
 
     async def update_review(
-            self,
-            review_id: int,
-            user_id: int,
-            data: ReviewUpdate,
-            is_admin: bool = False,
+        self,
+        review_id: int,
+        user_id: int,
+        data: ReviewUpdate,
+        is_admin: bool = False,
     ) -> ReviewOut:
         if data.rating is not None:
             self._validate_rating_value(data.rating)
@@ -71,10 +73,10 @@ class ReviewService:
             return review
 
     async def delete_review(
-            self,
-            review_id: int,
-            user_id: int,
-            is_admin: bool = False,
+        self,
+        review_id: int,
+        user_id: int,
+        is_admin: bool = False,
     ) -> None:
         async with self._uow as uow:
             review = await self._get_review_or_raise(uow, review_id)
@@ -94,9 +96,9 @@ class ReviewService:
 
     @staticmethod
     def _ensure_author_or_admin(
-            review_user_id: int,
-            current_user_id: int,
-            is_admin: bool,
+        review_user_id: int,
+        current_user_id: int,
+        is_admin: bool,
     ) -> None:
         if not (is_admin or review_user_id == current_user_id):
             raise PermissionDeniedError("Not enough permissions to modify this review")

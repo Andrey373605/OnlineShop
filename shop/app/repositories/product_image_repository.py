@@ -1,4 +1,5 @@
-from shop.app.schemas.product_image_schemas import ProductImageOut
+from shop.app.models.domain.product_image import ProductImageCreateData
+from shop.app.models.schemas import ProductImageOut
 
 
 class ProductImageRepositorySql:
@@ -17,8 +18,10 @@ class ProductImageRepositorySql:
         row = await self._queries.get_product_image_by_id(self._conn, id=image_id)
         return ProductImageOut(**row) if row else None
 
-    async def create(self, data: dict) -> int:
-        result = await self._queries.create_product_image(self._conn, **data)
+    async def create(self, product: ProductImageCreateData) -> int:
+        result = await self._queries.create_product_image(
+            self._conn, product_id=product.product_id, image_path=product.image_path
+        )
         return result["id"]
 
     async def update(self, image_id: int, data: dict) -> bool:
@@ -39,5 +42,3 @@ class ProductImageRepositorySql:
             product_id=product_id,
         )
         return [row["id"] for row in rows]
-
-

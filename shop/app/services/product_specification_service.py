@@ -5,7 +5,7 @@ from shop.app.core.exceptions import (
     OperationFailedError,
 )
 from shop.app.repositories.protocols import UnitOfWork
-from shop.app.schemas.product_specification_schemas import (
+from shop.app.models.schemas import (
     ProductSpecificationCreate,
     ProductSpecificationOut,
     ProductSpecificationResponse,
@@ -18,20 +18,24 @@ class ProductSpecificationService:
         self._uow = uow
 
     async def create_specification(
-            self,
-            data: ProductSpecificationCreate,
+        self,
+        data: ProductSpecificationCreate,
     ) -> ProductSpecificationResponse:
         async with self._uow as uow:
             await self._ensure_product_exists(uow, data.product_id)
 
-            existing = await uow.product_specifications.get_by_product_id(data.product_id)
+            existing = await uow.product_specifications.get_by_product_id(
+                data.product_id
+            )
             if existing:
                 raise AlreadyExistsError(
                     "Product specification",
                     "Product specification already exists for this product",
                 )
 
-            specification_id = await uow.product_specifications.create(data.model_dump())
+            specification_id = await uow.product_specifications.create(
+                data.model_dump()
+            )
             if not specification_id:
                 raise OperationFailedError("Failed to create product specification")
             await uow.commit()
@@ -46,33 +50,37 @@ class ProductSpecificationService:
             return await uow.product_specifications.get_all()
 
     async def get_specification_by_id(
-            self,
-            specification_id: int,
+        self,
+        specification_id: int,
     ) -> ProductSpecificationOut:
         async with self._uow as uow:
             return await self._get_specification_or_raise(uow, specification_id)
 
     async def get_specification_by_product_id(
-            self,
-            product_id: int,
+        self,
+        product_id: int,
     ) -> ProductSpecificationOut:
         async with self._uow as uow:
-            specification = await uow.product_specifications.get_by_product_id(product_id)
+            specification = await uow.product_specifications.get_by_product_id(
+                product_id
+            )
             if not specification:
                 raise NotFoundError("Product specification")
             return specification
 
     async def update_specification(
-            self,
-            specification_id: int,
-            data: ProductSpecificationUpdate,
+        self,
+        specification_id: int,
+        data: ProductSpecificationUpdate,
     ) -> ProductSpecificationResponse:
         async with self._uow as uow:
             await self._get_specification_or_raise(uow, specification_id)
 
             payload = data.model_dump(exclude_unset=True)
             if not payload:
-                raise DomainValidationError("No data provided to update product specification")
+                raise DomainValidationError(
+                    "No data provided to update product specification"
+                )
 
             if "product_id" in payload:
                 await self._ensure_product_exists(uow, payload["product_id"])
@@ -88,8 +96,8 @@ class ProductSpecificationService:
         )
 
     async def delete_specification(
-            self,
-            specification_id: int,
+        self,
+        specification_id: int,
     ) -> ProductSpecificationResponse:
         async with self._uow as uow:
             await self._get_specification_or_raise(uow, specification_id)
@@ -106,8 +114,8 @@ class ProductSpecificationService:
 
     @staticmethod
     async def _get_specification_or_raise(
-            uow: UnitOfWork,
-            specification_id: int,
+        uow: UnitOfWork,
+        specification_id: int,
     ) -> ProductSpecificationOut:
         specification = await uow.product_specifications.get_by_id(specification_id)
         if not specification:
