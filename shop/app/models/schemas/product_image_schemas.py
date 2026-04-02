@@ -15,7 +15,7 @@ class ProductImageUpdate(BaseModel):
 
 class ProductImageOut(ProductImageBase):
     id: int
-    image_url: str
+    image_path: str
 
 
 class ProductImageResponse(BaseModel):

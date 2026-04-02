@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
-from shop.app.schemas.cart_item_schemas import CartItemOut
+from shop.app.models.schemas import CartItemOut
 
 
 class CartBase(BaseModel):
@@ -29,7 +29,3 @@ class CartOut(CartBase):
 
 class CartWithItems(CartOut):
     items: list[CartItemOut] = Field(default_factory=list)
-
-
-
-
