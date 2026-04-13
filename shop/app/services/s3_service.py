@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 from fastapi import UploadFile
 from starlette.concurrency import run_in_threadpool
 
-from shop.app.core.exceptions import DomainValidationError, S3UploadError
+from shop.app.core.exceptions import DomainValidationError, S3UploadError, S3DeleteError
 
 
 class S3Service:
@@ -42,6 +42,10 @@ class S3Service:
         await self._validate_size(file)
         self._validate_extension(file)
         filename = self._get_filename(file)
+        await self._handle_put_object(file, filename)
+        return filename
+
+    async def _handle_put_object(self, file: UploadFile, filename: str):
         async with self._get_client() as client:
             try:
                 await client.put_object(
@@ -52,13 +56,18 @@ class S3Service:
                 )
             except ClientError as exc:
                 raise S3UploadError("Failed to upload file") from exc
-        return filename
 
     async def delete_file(self, key: str):
         if not key:
             raise DomainValidationError("Invalid key")
+        await self._handle_delete_object(key)
+
+    async def _handle_delete_object(self, key: str):
         async with self._get_client() as client:
-            return await client.delete_object(Bucket=self._bucket_name, Key=key)
+            try:
+                return await client.delete_object(Bucket=self._bucket_name, Key=key)
+            except ClientError as exc:
+                raise S3DeleteError("Failed to delete file") from exc
 
     @staticmethod
     def _generate_key():
