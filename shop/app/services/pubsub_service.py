@@ -1,11 +1,12 @@
 import asyncio
 import json
 import logging
-from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Awaitable
 
 from redis.asyncio import Redis
+
+from shop.app.utils.get_utc_now import get_utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,7 @@ class PubSubService:
         message = {
             "event": event,
             "instance_id": self._instance_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": get_utc_now().isoformat(),
             **(data or {}),
         }
         await self._redis.publish(channel.value, json.dumps(message))
@@ -79,7 +80,8 @@ class PubSubService:
         try:
             while self._running:
                 message = await self._pubsub.get_message(
-                    ignore_subscribe_messages=True, timeout=1.0,
+                    ignore_subscribe_messages=True,
+                    timeout=1.0,
                 )
                 if message is None:
                     await asyncio.sleep(0.05)

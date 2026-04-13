@@ -1,9 +1,7 @@
-from datetime import datetime, timezone
-from uuid import uuid4
-
 from redis.asyncio import Redis
 
 from shop.app.models.schemas import UserOut
+from shop.app.utils.get_utc_now import get_utc_now
 
 
 class SessionService:
@@ -21,14 +19,19 @@ class SessionService:
     def _user_sessions_key(self, user_id: int) -> str:
         return f"{self.USER_SESSIONS_PREFIX}{user_id}"
 
+    @staticmethod
+    def _serialize_datetime(value) -> str:
+        return value.isoformat()
+
     async def create_session(
         self,
         user: UserOut,
+        session_id: str,
         ip_address: str = "",
         user_agent: str = "",
     ) -> str:
-        session_id = uuid4().hex
-        now = datetime.now(timezone.utc).isoformat()
+        now = get_utc_now()
+        now_iso = self._serialize_datetime(now)
 
         session_data = {
             "session_id": session_id,
@@ -36,8 +39,8 @@ class SessionService:
             "user_data": user.model_dump_json(),
             "ip_address": ip_address,
             "user_agent": user_agent,
-            "created_at": now,
-            "last_activity": now,
+            "created_at": now_iso,
+            "last_activity": now_iso,
             "instance_id": self._instance_id,
         }
 
@@ -67,9 +70,10 @@ class SessionService:
         exists = await self._redis.exists(key)
         if not exists:
             return
-        now = datetime.now(timezone.utc).isoformat()
+        now = get_utc_now()
+        now_iso = self._serialize_datetime(now)
         async with self._redis.pipeline() as pipe:
-            pipe.hset(key, "last_activity", now)
+            pipe.hset(key, "last_activity", now_iso)
             pipe.expire(key, self._ttl_seconds)
             await pipe.execute()
 
