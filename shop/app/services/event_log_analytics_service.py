@@ -46,7 +46,7 @@ class EventLogAnalyticsService:
     async def user_anomalies(
         self,
         time_from: datetime,
-        std_threshold: float = 2.0,
+        std_threshold: float = 1.0,
     ) -> list[UserAnomaly]:
         rows = await self._repo.aggregate_user_anomalies(time_from, std_threshold)
         return [UserAnomaly(**r) for r in rows]
