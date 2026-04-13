@@ -4,11 +4,12 @@ from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorDatabase
 
 from shop.app.core.config import settings
 from shop.app.models.schemas import EventLogOut
+from shop.app.utils.get_utc_now import get_utc_now
 
 
 def _event_log_now() -> datetime:
     """Момент записи лога в настроенном часовом поясе (в BSON уходит тот же инстант в UTC)."""
-    return datetime.now(timezone.utc)
+    return get_utc_now()
 
 
 def _created_at_for_api(dt: datetime) -> datetime:
