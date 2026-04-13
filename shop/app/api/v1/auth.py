@@ -18,7 +18,7 @@ from shop.app.models.schemas import (
     TokenPair,
 )
 from shop.app.models.schemas import UserOut
-from shop.app.services.auth_service import AuthService
+from shop.app.services.auth.auth_service import AuthService
 from shop.app.services.session_service import SessionService
 from shop.app.core.security import decode_token
 

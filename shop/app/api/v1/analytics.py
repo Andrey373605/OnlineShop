@@ -72,7 +72,7 @@ async def get_time_series(
 @router.get("/anomalies", response_model=list[UserAnomaly])
 async def get_anomalies(
     time_from: datetime = Query(...),
-    std_threshold: float = Query(2.0, ge=1.0, le=5.0),
+    std_threshold: float = Query(1.0, ge=1.0, le=5.0),
     current_user: UserOut = Depends(get_current_user),
     svc: EventLogAnalyticsService = Depends(get_event_log_analytics_service),
 ):

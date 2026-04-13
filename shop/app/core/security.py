@@ -6,29 +6,32 @@ import bcrypt
 from jose import jwt
 
 from shop.app.core.config import settings
+from shop.app.utils.get_utc_now import get_utc_now
 
 
 def hash_password(password: str) -> str:
-    password_bytes = password.encode('utf-8')
+    password_bytes = password.encode("utf-8")
     hashed = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
-    return hashed.decode('utf-8')
+    return hashed.decode("utf-8")
 
 
 def verify_password(password: str, hashed_password: str) -> bool:
-    password_bytes = password.encode('utf-8')
-    hashed_bytes = hashed_password.encode('utf-8')
+    password_bytes = password.encode("utf-8")
+    hashed_bytes = hashed_password.encode("utf-8")
     return bcrypt.checkpw(password_bytes, hashed_bytes)
 
 
 def _create_token(
-        data: dict[str, Any],
-        expires_delta: timedelta,
-        scope: str,
+    data: dict[str, Any],
+    expires_delta: timedelta,
+    scope: str,
 ) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + expires_delta
+    expire = get_utc_now() + expires_delta
     to_encode.update({"exp": expire, "scope": scope})
-    return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(
+        to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
+    )
 
 
 def create_access_token(
@@ -45,7 +48,9 @@ def create_access_token(
     return _create_token(data, expires_delta, scope="access_token")
 
 
-def create_refresh_token(subject: str, extra_data: Optional[dict[str, Any]] = None) -> str:
+def create_refresh_token(
+    subject: str, extra_data: Optional[dict[str, Any]] = None
+) -> str:
     data = {"sub": subject, "jti": secrets.token_hex(16)}
     if extra_data:
         data.update(extra_data)
@@ -54,7 +59,9 @@ def create_refresh_token(subject: str, extra_data: Optional[dict[str, Any]] = No
 
 
 def decode_token(token: str) -> dict[str, Any]:
-    return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+    return jwt.decode(
+        token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+    )
 
 
 def hash_token(token: str) -> str:

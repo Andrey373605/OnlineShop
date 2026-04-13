@@ -11,7 +11,12 @@ from shop.app.dependencies.session import get_session_service
 from shop.app.repositories.event_log_analytics_repository import EventLogAnalyticsRepositoryMongo
 from shop.app.repositories.event_log_mongo_repository import EventLogRepositoryMongo
 from shop.app.repositories.protocols import UnitOfWork
-from shop.app.services.auth_service import AuthService
+from shop.app.services.auth.auth_login_service import AuthLoginService
+from shop.app.services.auth.auth_protection_service import AuthProtectionService
+from shop.app.services.auth.auth_registration_service import AuthRegistrationService
+from shop.app.services.auth.auth_service import AuthService
+from shop.app.services.auth.auth_session_service import AuthSessionService
+from shop.app.services.auth.auth_token_service import AuthTokenService
 from shop.app.services.cache_service import CacheService
 from shop.app.services.cart_service import CartService
 from shop.app.services.category_service import CategoryService
@@ -78,7 +83,18 @@ async def get_auth_service(
     cache: CacheService = Depends(get_cache_service),
     session_service: SessionService = Depends(get_session_service),
 ) -> AuthService:
-    return AuthService(uow=uow, cache=cache, session_service=session_service)
+    auth_session_service = AuthSessionService(session_service=session_service)
+    auth_token_service = AuthTokenService()
+    auth_protection_service = AuthProtectionService(cache=cache)
+    return AuthService(
+        registration_service=AuthRegistrationService(uow=uow),
+        login_service=AuthLoginService(
+            uow=uow,
+            session_service=auth_session_service,
+            token_service=auth_token_service,
+            protection_service=auth_protection_service,
+        ),
+    )
 
 
 async def get_cart_service(
