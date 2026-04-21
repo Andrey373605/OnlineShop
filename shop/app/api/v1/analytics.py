@@ -1,5 +1,5 @@
+import enum
 from datetime import datetime
-from enum import Enum
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
@@ -13,15 +13,15 @@ from shop.app.models.schemas import (
     TimeSeriesPoint,
     TopUser,
     UserAnomaly,
+    UserOut,
 )
-from shop.app.models.schemas import UserOut
 from shop.app.services.event_log_analytics_service import EventLogAnalyticsService
 from shop.app.utils.ensure_admin import _ensure_admin
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 
-class ExportFormat(str, Enum):
+class ExportFormat(enum.StrEnum):
     json = "json"
     csv = "csv"
 

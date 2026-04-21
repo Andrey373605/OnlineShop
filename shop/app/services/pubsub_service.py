@@ -1,8 +1,9 @@
 import asyncio
+import enum
 import json
 import logging
-from enum import Enum
-from typing import Any, Callable, Awaitable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from redis.asyncio import Redis
 
@@ -11,7 +12,7 @@ from shop.app.utils.get_utc_now import get_utc_now
 logger = logging.getLogger(__name__)
 
 
-class PubSubChannel(str, Enum):
+class PubSubChannel(enum.StrEnum):
     CACHE_INVALIDATION = "ch:cache_invalidation"
     SESSION_INVALIDATION = "ch:session_invalidation"
     DATA_CHANGE = "ch:data_change"
