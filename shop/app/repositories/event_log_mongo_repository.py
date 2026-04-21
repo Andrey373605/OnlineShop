@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorDatabase
 
@@ -15,7 +15,7 @@ def _event_log_now() -> datetime:
 def _created_at_for_api(dt: datetime) -> datetime:
     """Mongo отдаёт UTC (часто без tzinfo); для API — в EVENT_LOG_TIMEZONE."""
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt.astimezone(settings.event_log_tz)
 
 

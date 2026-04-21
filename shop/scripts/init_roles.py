@@ -4,7 +4,6 @@ import asyncpg
 
 from shop.app.core.config import settings
 
-
 DEFAULT_ROLES = [
     "admin",
     "user",

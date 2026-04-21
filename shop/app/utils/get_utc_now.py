@@ -1,9 +1,9 @@
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
 
 def get_utc_now():
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def get_utc_with_delta(**kwargs):
-    return datetime.now(timezone.utc) + timedelta(**kwargs)
+    return datetime.now(UTC) + timedelta(**kwargs)
