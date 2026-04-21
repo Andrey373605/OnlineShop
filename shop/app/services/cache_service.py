@@ -1,6 +1,5 @@
-from dataclasses import dataclass
 import json
-from typing import List
+from dataclasses import dataclass
 
 from redis.asyncio import Redis
 
@@ -61,7 +60,7 @@ class CacheService:
     async def exists(self, key: str) -> bool:
         return bool(await self.redis_client.exists(key))
 
-    async def get_list(self, key: str) -> List[str]:
+    async def get_list(self, key: str) -> list[str]:
         return await self.redis_client.lrange(key, 0, -1)
 
     async def add_to_list(self, key: str, value: str) -> None:
@@ -70,7 +69,7 @@ class CacheService:
     async def set_list_atomic(
         self,
         key: str,
-        items: List[str],
+        items: list[str],
         ttl_seconds: int | None = None,
     ) -> None:
         async with self.redis_client.pipeline() as pipe:

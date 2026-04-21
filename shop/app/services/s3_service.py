@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 from fastapi import UploadFile
 from starlette.concurrency import run_in_threadpool
 
-from shop.app.core.exceptions import DomainValidationError, S3UploadError, S3DeleteError
+from shop.app.core.exceptions import DomainValidationError, S3DeleteError, S3UploadError
 
 
 class S3Service:

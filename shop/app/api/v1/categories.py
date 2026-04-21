@@ -1,8 +1,13 @@
-from fastapi import APIRouter, Depends, Body, Path, Request
+from fastapi import APIRouter, Body, Depends, Path, Request
+
 from shop.app.dependencies.auth import get_current_user
 from shop.app.dependencies.services import get_category_service, get_event_log_service
-from shop.app.models.schemas import CategoryResponse, CategoryCreate, CategoryUpdate
-from shop.app.models.schemas import UserOut
+from shop.app.models.schemas import (
+    CategoryCreate,
+    CategoryResponse,
+    CategoryUpdate,
+    UserOut,
+)
 from shop.app.services.category_service import CategoryService
 from shop.app.services.event_log_service import EventLogService
 from shop.app.utils.ensure_admin import _ensure_admin

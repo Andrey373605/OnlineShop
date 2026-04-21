@@ -1,26 +1,27 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 
+from shop.app.core.security import decode_token
 from shop.app.dependencies.auth import get_current_user, oauth2_scheme
 from shop.app.dependencies.services import get_auth_service, get_event_log_service
 from shop.app.dependencies.session import get_session_service
-from shop.app.models.schemas import EventType
-from shop.app.models.schemas import SessionInfo, SessionListResponse
-from shop.app.services.event_log_service import EventLogService
 from shop.app.models.schemas import (
     AuthResponse,
+    EventType,
     LoginRequest,
     LogoutRequest,
     RefreshRequest,
     RefreshResponse,
     RegisterRequest,
     RegisterResponse,
+    SessionInfo,
+    SessionListResponse,
     TokenPair,
+    UserOut,
 )
-from shop.app.models.schemas import UserOut
 from shop.app.services.auth.auth_service import AuthService
+from shop.app.services.event_log_service import EventLogService
 from shop.app.services.session_service import SessionService
-from shop.app.core.security import decode_token
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 

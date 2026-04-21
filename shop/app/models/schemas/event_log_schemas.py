@@ -41,10 +41,14 @@ class EventLogOut(EventLogBase):
 class EventLogFilter(BaseModel):
     """Параметры поиска и фильтрации логов событий."""
 
-    time_from: datetime | None = Field(None, description="Начало временного интервала (включительно)")
+    time_from: datetime | None = Field(
+        None, description="Начало временного интервала (включительно)"
+    )
     time_to: datetime | None = Field(None, description="Конец временного интервала (включительно)")
     user_id: int | None = Field(None, description="Фильтр по ID пользователя")
-    event_type: str | None = Field(None, description="Тип события (например AUTH_LOGIN, HTTP_REQUEST)")
+    event_type: str | None = Field(
+        None, description="Тип события (например AUTH_LOGIN, HTTP_REQUEST)"
+    )
 
 
 class EventLogListOut(BaseModel):
@@ -52,6 +56,3 @@ class EventLogListOut(BaseModel):
 
     items: list[EventLogOut]
     total: int
-
-
-

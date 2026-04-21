@@ -10,19 +10,22 @@ from datetime import datetime
 from typing import Protocol
 
 from shop.app.models.domain.product_image import ProductImageCreateData
-from shop.app.models.schemas import CartItemOut
-from shop.app.models.schemas import CartOut
-from shop.app.models.schemas import CategoryOut
-from shop.app.models.schemas import EventLogOut
-from shop.app.models.schemas import OrderItemOut
-from shop.app.models.schemas import OrderOut
-from shop.app.models.schemas import ProductImageOut
-from shop.app.models.schemas import ProductOut
-from shop.app.models.schemas import ProductSpecificationOut
-from shop.app.models.schemas import RefreshTokenOut
-from shop.app.models.schemas import ReviewOut
-from shop.app.models.schemas import RoleOut
-from shop.app.models.schemas import UserDB, UserOut
+from shop.app.models.schemas import (
+    CartItemOut,
+    CartOut,
+    CategoryOut,
+    EventLogOut,
+    OrderItemOut,
+    OrderOut,
+    ProductImageOut,
+    ProductOut,
+    ProductSpecificationOut,
+    RefreshTokenOut,
+    ReviewOut,
+    RoleOut,
+    UserDB,
+    UserOut,
+)
 
 
 class CategoryRepository(Protocol):

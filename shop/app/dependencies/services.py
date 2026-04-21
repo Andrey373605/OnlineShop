@@ -8,7 +8,9 @@ from shop.app.dependencies.mongo import get_mongo_db
 from shop.app.dependencies.pubsub import get_pubsub_service
 from shop.app.dependencies.s3 import get_s3_service
 from shop.app.dependencies.session import get_session_service
-from shop.app.repositories.event_log_analytics_repository import EventLogAnalyticsRepositoryMongo
+from shop.app.repositories.event_log_analytics_repository import (
+    EventLogAnalyticsRepositoryMongo,
+)
 from shop.app.repositories.event_log_mongo_repository import EventLogRepositoryMongo
 from shop.app.repositories.protocols import UnitOfWork
 from shop.app.services.auth.auth_login_service import AuthLoginService

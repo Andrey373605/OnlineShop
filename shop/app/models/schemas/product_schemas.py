@@ -1,5 +1,6 @@
-from pydantic import BaseModel, AnyUrl
 from decimal import Decimal
+
+from pydantic import BaseModel
 
 
 class ProductBase(BaseModel):

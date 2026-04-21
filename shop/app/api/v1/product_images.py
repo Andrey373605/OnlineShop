@@ -9,10 +9,10 @@ from shop.app.models.schemas import (
     ProductImageCreate,
     ProductImageOut,
     ProductImageResponse,
-    ProductImageUpdate,
     ProductImagesDeleteResponse,
+    ProductImageUpdate,
+    UserOut,
 )
-from shop.app.models.schemas import UserOut
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.product_image_service import ProductImageService
 from shop.app.utils.ensure_admin import _ensure_admin
@@ -130,7 +130,8 @@ async def delete_product_images_by_product(
     await event_log_service.log_event(
         "PRODUCT_IMAGE_BULK_DELETED",
         user_id=current_user.id,
-        description=f"Images for product #{product_id} deleted by {current_user.username}",
+        description=f"Images for product #{product_id} "
+        f"deleted by {current_user.username}",
         request=request,
     )
     return response

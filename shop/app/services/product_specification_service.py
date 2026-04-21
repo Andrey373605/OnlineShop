@@ -4,13 +4,13 @@ from shop.app.core.exceptions import (
     NotFoundError,
     OperationFailedError,
 )
-from shop.app.repositories.protocols import UnitOfWork
 from shop.app.models.schemas import (
     ProductSpecificationCreate,
     ProductSpecificationOut,
     ProductSpecificationResponse,
     ProductSpecificationUpdate,
 )
+from shop.app.repositories.protocols import UnitOfWork
 
 
 class ProductSpecificationService:

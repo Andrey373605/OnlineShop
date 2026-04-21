@@ -5,7 +5,12 @@ from shop.app.core.exceptions import (
     ServiceUnavailableError,
 )
 from shop.app.core.security import hash_password
-from shop.app.models.schemas import AuthUserOut, RegisterRequest, RegisterResponse, UserOut
+from shop.app.models.schemas import (
+    AuthUserOut,
+    RegisterRequest,
+    RegisterResponse,
+    UserOut,
+)
 from shop.app.repositories.protocols import UnitOfWork
 from shop.app.utils.get_utc_now import get_utc_now
 

@@ -1,7 +1,8 @@
-from datetime import datetime, timedelta, timezone
 import hashlib
 import secrets
-from typing import Any, Optional
+from datetime import timedelta
+from typing import Any
+
 import bcrypt
 from jose import jwt
 
@@ -36,8 +37,8 @@ def _create_token(
 
 def create_access_token(
     subject: str,
-    extra_data: Optional[dict[str, Any]] = None,
-    session_id: Optional[str] = None,
+    extra_data: dict[str, Any] | None = None,
+    session_id: str | None = None,
 ) -> str:
     data = {"sub": subject}
     if session_id:
@@ -49,7 +50,7 @@ def create_access_token(
 
 
 def create_refresh_token(
-    subject: str, extra_data: Optional[dict[str, Any]] = None
+    subject: str, extra_data: dict[str, Any] | None = None
 ) -> str:
     data = {"sub": subject, "jti": secrets.token_hex(16)}
     if extra_data:

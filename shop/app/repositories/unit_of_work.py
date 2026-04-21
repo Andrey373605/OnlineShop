@@ -10,7 +10,9 @@ from shop.app.repositories.order_item_repository import OrderItemRepositorySql
 from shop.app.repositories.order_repository import OrderRepositorySql
 from shop.app.repositories.product_image_repository import ProductImageRepositorySql
 from shop.app.repositories.product_repository import ProductRepositorySql
-from shop.app.repositories.product_specification_repository import ProductSpecificationRepositorySql
+from shop.app.repositories.product_specification_repository import (
+    ProductSpecificationRepositorySql,
+)
 from shop.app.repositories.protocols import UnitOfWork
 from shop.app.repositories.refresh_token_repository import RefreshTokenRepositorySql
 from shop.app.repositories.review_repository import ReviewRepositorySql

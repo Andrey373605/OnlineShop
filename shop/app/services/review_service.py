@@ -5,8 +5,8 @@ from shop.app.core.exceptions import (
     OperationFailedError,
     PermissionDeniedError,
 )
-from shop.app.repositories.protocols import UnitOfWork
 from shop.app.models.schemas import ReviewCreate, ReviewOut, ReviewUpdate
+from shop.app.repositories.protocols import UnitOfWork
 
 
 class ReviewService:

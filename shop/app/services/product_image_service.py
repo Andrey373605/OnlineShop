@@ -5,16 +5,15 @@ from shop.app.core.exceptions import (
     NotFoundError,
     OperationFailedError,
 )
+from shop.app.models.domain.product_image import ProductImageCreateData
 from shop.app.models.schemas import (
     ProductImageCreate,
-    ProductImageResponse,
     ProductImageOut,
-    ProductImageUpdate,
+    ProductImageResponse,
     ProductImagesDeleteResponse,
+    ProductImageUpdate,
 )
-from shop.app.models.domain.product_image import ProductImageCreateData
 from shop.app.repositories.protocols import UnitOfWork
-
 from shop.app.services.s3_service import S3Service
 
 

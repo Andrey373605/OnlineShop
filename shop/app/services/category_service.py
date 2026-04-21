@@ -3,13 +3,13 @@ from shop.app.core.exceptions import (
     NotFoundError,
     OperationFailedError,
 )
-from shop.app.repositories.protocols import UnitOfWork
 from shop.app.models.schemas import (
     CategoryCreate,
     CategoryOut,
     CategoryResponse,
     CategoryUpdate,
 )
+from shop.app.repositories.protocols import UnitOfWork
 from shop.app.services.cache_service import CacheService
 from shop.app.services.pubsub_service import PubSubChannel, PubSubService
 

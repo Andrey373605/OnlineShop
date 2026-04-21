@@ -2,7 +2,6 @@ import logging
 
 from fastapi import Request
 
-from shop.app.repositories.protocols import EventLogRepository
 from shop.app.models.schemas import (
     EventLogCreate,
     EventLogFilter,
@@ -10,6 +9,7 @@ from shop.app.models.schemas import (
     EventLogOut,
     EventType,
 )
+from shop.app.repositories.protocols import EventLogRepository
 
 
 class EventLogService:

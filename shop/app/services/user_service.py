@@ -4,12 +4,12 @@ from shop.app.core.exceptions import (
     OperationFailedError,
 )
 from shop.app.core.security import hash_password
-from shop.app.repositories.protocols import UnitOfWork
 from shop.app.models.schemas import (
     UserCreate,
     UserOut,
     UserUpdate,
 )
+from shop.app.repositories.protocols import UnitOfWork
 from shop.app.services.cache_service import CacheService
 from shop.app.services.pubsub_service import PubSubChannel, PubSubService
 from shop.app.services.session_service import SessionService

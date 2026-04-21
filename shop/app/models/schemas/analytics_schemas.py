@@ -1,9 +1,10 @@
+import enum
 from datetime import datetime
-from enum import Enum
+
 from pydantic import BaseModel, Field
 
 
-class PeriodEnum(str, Enum):
+class PeriodEnum(enum.StrEnum):
     day = "day"
     week = "week"
     month = "month"
@@ -45,6 +46,4 @@ class UserAnomaly(BaseModel):
     std_deviation: float
     max_daily_events: int
     days_active: int
-    anomaly_score: float = Field(
-        description="Отношение max к (avg + 2*std); >1 = аномалия"
-    )
+    anomaly_score: float = Field(description="Отношение max к (avg + 2*std); >1 = аномалия")

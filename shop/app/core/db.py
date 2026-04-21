@@ -1,7 +1,7 @@
 from pathlib import Path
 
-import asyncpg
 import aiosql
+import asyncpg
 
 from shop.app.core.config import settings
 
@@ -10,7 +10,10 @@ queries = aiosql.from_path(_QUERIES_DIR, "asyncpg")
 
 
 async def create_db_pool() -> asyncpg.Pool:
-    """Создать пул соединений. Вызывается из lifespan, результат хранить в app.state.db_pool."""
+    """
+    Создать пул соединений. Вызывается из lifespan,
+    результат хранить в app.state.db_pool.
+    """
     return await asyncpg.create_pool(
         settings.DATABASE_URL,
         min_size=1,

@@ -2,8 +2,13 @@ from fastapi import APIRouter, Body, Depends, Path, Request, status
 
 from shop.app.dependencies.auth import get_current_user
 from shop.app.dependencies.services import get_event_log_service, get_role_service
-from shop.app.models.schemas import RoleCreate, RoleOut, RoleResponse, RoleUpdate
-from shop.app.models.schemas import UserOut
+from shop.app.models.schemas import (
+    RoleCreate,
+    RoleOut,
+    RoleResponse,
+    RoleUpdate,
+    UserOut,
+)
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.role_service import RoleService
 from shop.app.utils.ensure_admin import _ensure_admin

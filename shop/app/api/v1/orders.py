@@ -8,12 +8,14 @@ from shop.app.dependencies.services import (
     get_order_service,
 )
 from shop.app.models.schemas import (
+    OrderCreate,
     OrderItemCreate,
     OrderItemOut,
     OrderItemUpdate,
+    OrderOut,
+    OrderUpdate,
+    UserOut,
 )
-from shop.app.models.schemas import OrderCreate, OrderOut, OrderUpdate
-from shop.app.models.schemas import UserOut
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.order_item_service import OrderItemService
 from shop.app.services.order_service import OrderService

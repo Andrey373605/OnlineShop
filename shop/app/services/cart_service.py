@@ -5,10 +5,15 @@ from shop.app.core.exceptions import (
     NotFoundError,
     OperationFailedError,
 )
+from shop.app.models.schemas import (
+    CartItemAdd,
+    CartItemOut,
+    CartItemQuantityUpdate,
+    CartOut,
+    CartWithItems,
+    ProductOut,
+)
 from shop.app.repositories.protocols import UnitOfWork
-from shop.app.models.schemas import CartItemAdd, CartItemQuantityUpdate, CartItemOut
-from shop.app.models.schemas import CartWithItems, CartOut
-from shop.app.models.schemas import ProductOut
 
 
 class CartService:

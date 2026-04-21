@@ -3,7 +3,6 @@ import io
 import json
 from datetime import datetime
 
-from shop.app.repositories.protocols import EventLogAnalyticsRepository
 from shop.app.models.schemas import (
     ActivityByPeriod,
     EventTypeStats,
@@ -11,6 +10,7 @@ from shop.app.models.schemas import (
     TopUser,
     UserAnomaly,
 )
+from shop.app.repositories.protocols import EventLogAnalyticsRepository
 
 
 class EventLogAnalyticsService:

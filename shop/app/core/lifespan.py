@@ -7,17 +7,17 @@ from redis.asyncio import Redis
 
 from shop.app.core.cache import create_cache_service
 from shop.app.core.config import settings
-from shop.app.services.cache_service import CacheService
-from shop.app.core.db import create_db_pool, close_db_pool
+from shop.app.core.db import close_db_pool, create_db_pool
 from shop.app.core.mongo import (
+    close_mongo_client,
     create_mongo_client,
     get_mongo_database,
-    close_mongo_client,
 )
 from shop.app.core.mongo_indexes import (
     ensure_event_log_search_indexes,
     ensure_event_log_ttl_index,
 )
+from shop.app.services.cache_service import CacheService
 from shop.app.services.pubsub_handlers import (
     make_cache_invalidation_handler,
     make_data_change_handler,

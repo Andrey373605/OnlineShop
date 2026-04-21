@@ -4,8 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from shop.app.dependencies.auth import get_current_user
 from shop.app.dependencies.services import get_event_log_service
-from shop.app.models.schemas import EventLogFilter, EventLogListOut
-from shop.app.models.schemas import UserOut
+from shop.app.models.schemas import EventLogFilter, EventLogListOut, UserOut
 from shop.app.services.event_log_service import EventLogService
 from shop.app.utils.ensure_admin import _ensure_admin
 

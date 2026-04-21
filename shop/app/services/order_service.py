@@ -3,8 +3,8 @@ from shop.app.core.exceptions import (
     NotFoundError,
     OperationFailedError,
 )
-from shop.app.repositories.protocols import UnitOfWork
 from shop.app.models.schemas import OrderCreate, OrderOut, OrderUpdate
+from shop.app.repositories.protocols import UnitOfWork
 
 
 class OrderService:

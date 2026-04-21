@@ -10,8 +10,8 @@ from shop.app.models.schemas import (
     ProductSpecificationOut,
     ProductSpecificationResponse,
     ProductSpecificationUpdate,
+    UserOut,
 )
-from shop.app.models.schemas import UserOut
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.product_specification_service import (
     ProductSpecificationService,
@@ -38,7 +38,8 @@ async def create_product_specification(
     await event_log_service.log_event(
         "PRODUCT_SPECIFICATION_CREATED",
         user_id=current_user.id,
-        description=f"Specification #{response.id} created for product #{data.product_id}",
+        description=f"Specification #{response.id} "
+        f"created for product #{data.product_id}",
         request=request,
     )
     return response
@@ -115,7 +116,8 @@ async def delete_product_specification(
     await event_log_service.log_event(
         "PRODUCT_SPECIFICATION_DELETED",
         user_id=current_user.id,
-        description=f"Specification #{specification_id} deleted by {current_user.username}",
+        description=f"Specification #{specification_id} "
+        f"deleted by {current_user.username}",
         request=request,
     )
     return response

@@ -1,13 +1,13 @@
 from fastapi import UploadFile
 
 from shop.app.core.exceptions import NotFoundError, OperationFailedError
-from shop.app.repositories.protocols import UnitOfWork
 from shop.app.models.schemas import (
     ProductCreate,
     ProductOut,
     ProductResponse,
     ProductUpdate,
 )
+from shop.app.repositories.protocols import UnitOfWork
 from shop.app.services.cache_service import CacheService
 from shop.app.services.pubsub_service import PubSubChannel, PubSubService
 from shop.app.services.s3_service import S3Service
