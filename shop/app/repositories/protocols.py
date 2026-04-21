@@ -4,8 +4,6 @@
 Реализацию можно заменить (например, на ORM) без изменения кода выше по стеку.
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from typing import Protocol
 
