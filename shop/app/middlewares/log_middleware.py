@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
+from shop.app.core.state import get_app_state
 from shop.app.repositories.event_log_mongo_repository import EventLogRepositoryMongo
 from shop.app.services.event_log_service import EventLogService
 
@@ -12,7 +13,7 @@ log = logging.getLogger(__name__)
 
 
 def _get_event_log_service(request: Request) -> EventLogService:
-    db = request.app.state.mongo_db
+    db = get_app_state(request).mongo_db
     return EventLogService(repo=EventLogRepositoryMongo(db=db))
 
 

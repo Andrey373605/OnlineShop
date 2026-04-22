@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
 
 from shop.app.core.config import settings
+from shop.app.core.state import AppState, get_app_state
 from shop.app.services.pubsub_service import PubSubChannel, PubSubService
 from shop.app.services.session_service import SessionService
 
@@ -19,9 +20,9 @@ async def root():
 
 
 @router.get("/health")
-async def health_check(request: Request):
-    pubsub: PubSubService = request.app.state.pubsub_service
-    session_svc: SessionService = request.app.state.session_service
+async def health_check(app_state: AppState = Depends(get_app_state)):
+    pubsub: PubSubService = app_state.pubsub_service
+    session_svc: SessionService = app_state.session_service
     active_sessions = await session_svc.count_active_sessions()
 
     return {

@@ -12,7 +12,7 @@ queries = aiosql.from_path(_QUERIES_DIR, "asyncpg")
 async def create_db_pool() -> asyncpg.Pool:
     """
     Создать пул соединений. Вызывается из lifespan,
-    результат хранить в app.state.db_pool.
+    результат хранить в app.state.ext.db_pool.
     """
     return await asyncpg.create_pool(
         settings.DATABASE_URL,

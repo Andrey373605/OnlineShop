@@ -6,7 +6,7 @@ from shop.app.core.config import settings
 def create_mongo_client() -> AsyncIOMotorClient:
     """
     Создать MongoDB-клиент. Вызывается из lifespan,
-    результат хранить в app.state.mongo_client.
+    результат хранить в app.state.ext.mongo_client.
     """
     return AsyncIOMotorClient(settings.MONGO_URL)
 
