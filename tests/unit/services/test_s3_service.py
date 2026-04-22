@@ -6,22 +6,18 @@ from botocore.exceptions import ClientError
 from fastapi import UploadFile
 from starlette.datastructures import Headers
 
-from shop.app.core.exceptions import (
-    DomainValidationError,
-    S3DeleteError,
-    S3UploadError,
-)
-from shop.app.services.s3_service import S3Service
+from shop.app.adapters.s3.storage import S3Storage
+from shop.app.core.exceptions import DomainValidationError, S3DeleteError, S3UploadError
 
 
-def _build_service() -> S3Service:
-    return S3Service(
+def _build_storage() -> S3Storage:
+    return S3Storage(
         endpoint_url="http://localhost:9000",
         access_key="access",
         secret_key="secret",
         bucket_name="bucket",
         max_file_size=10,
-        allowed_extensions=["png", "jpg"],
+        allowed_extensions={"png", "jpg"},
     )
 
 
@@ -40,111 +36,42 @@ def _build_upload_file(
 
 
 @pytest.mark.asyncio
-async def test_upload_file_success() -> None:
-    service = _build_service()
-    file = _build_upload_file(filename="avatar.png")
-    expected_filename = "generated.png"
-    service._get_filename = Mock(return_value=expected_filename)  # type: ignore[method-assign]
-    service._validate_size = AsyncMock()  # type: ignore[method-assign]
-    service._validate_extension = Mock()  # type: ignore[method-assign]
-    service._handle_put_object = AsyncMock()  # type: ignore[method-assign]
+async def test_upload_file_returns_generated_key() -> None:
+    storage = _build_storage()
+    file = _build_upload_file()
+    storage._validator.validate = Mock()  # type: ignore[method-assign]
+    storage._filename_generator.generate = Mock(return_value="generated.png")  # type: ignore[method-assign]
+    storage._upload_to_s3 = AsyncMock()  # type: ignore[method-assign]
 
-    result = await service.upload_file(file)
+    result = await storage.upload_file(file, content_length=5)
 
-    assert result == expected_filename
-    service._validate_size.assert_awaited_once_with(file)
-    service._validate_extension.assert_called_once_with(file)
-    service._handle_put_object.assert_awaited_once_with(file, expected_filename)
-
-
-@pytest.mark.asyncio
-async def test_validate_size_raises_when_file_size_attr_exceeds_limit() -> None:
-    service = _build_service()
-    file = _build_upload_file(size=11)
-
-    with pytest.raises(
-        DomainValidationError, match="File size exceeds the allowed limit"
-    ):
-        await service._validate_size(file)
-
-
-@pytest.mark.asyncio
-async def test_validate_size_passes_when_size_from_file_object_within_limit() -> None:
-    service = _build_service()
-    file = _build_upload_file(size=None, data=b"1234567890")
-
-    await service._validate_size(file)
-
-    assert file.file.tell() == 0
-
-
-@pytest.mark.asyncio
-async def test_validate_size_raises_when_size_from_file_object_exceeds_limit() -> None:
-    service = _build_service()
-    file = _build_upload_file(size=None, data=b"12345678901")
-
-    with pytest.raises(
-        DomainValidationError, match="File size exceeds the allowed limit"
-    ):
-        await service._validate_size(file)
-
-
-def test_validate_extension_raises_when_filename_missing_extension() -> None:
-    service = _build_service()
-    file = _build_upload_file(filename="filename_without_extension")
-
-    with pytest.raises(
-        DomainValidationError, match="File must have an allowed extension"
-    ):
-        service._validate_extension(file)
-
-
-def test_validate_extension_raises_when_extension_not_allowed() -> None:
-    service = _build_service()
-    file = _build_upload_file(filename="document.pdf")
-
-    with pytest.raises(DomainValidationError, match="File extension is not allowed"):
-        service._validate_extension(file)
-
-
-def test_get_filename_uses_generated_key_and_file_extension() -> None:
-    service = _build_service()
-    file = _build_upload_file(filename="photo.JPG")
-
-    with patch.object(service, "_generate_key", return_value="abc123"):
-        result = service._get_filename(file)
-
-    assert result == "abc123.JPG"
-
-
-def test_generate_key_returns_uuid_hex() -> None:
-    generated = S3Service._generate_key()
-
-    assert isinstance(generated, str)
-    assert len(generated) == 32
+    assert result == "generated.png"
+    storage._validator.validate.assert_called_once_with(file, 5)
+    storage._filename_generator.generate.assert_called_once_with(file)
+    storage._upload_to_s3.assert_awaited_once_with(file, "generated.png")
 
 
 @pytest.mark.asyncio
 async def test_delete_file_raises_when_key_is_empty() -> None:
-    service = _build_service()
+    storage = _build_storage()
 
     with pytest.raises(DomainValidationError, match="Invalid key"):
-        await service.delete_file("")
+        await storage.delete_file("")
 
 
 @pytest.mark.asyncio
-async def test_delete_file_calls_delete_handler() -> None:
-    service = _build_service()
-    service._handle_delete_object = AsyncMock()  # type: ignore[method-assign]
+async def test_delete_file_calls_s3_delete() -> None:
+    storage = _build_storage()
+    storage._delete_from_s3 = AsyncMock()  # type: ignore[method-assign]
 
-    await service.delete_file("file-key")
+    await storage.delete_file("key.png")
 
-    service._handle_delete_object.assert_awaited_once_with("file-key")
+    storage._delete_from_s3.assert_awaited_once_with("key.png")
 
 
 @pytest.mark.asyncio
-async def test_handle_put_object_raises_s3_upload_error_on_client_error() -> None:
-    service = _build_service()
+async def test_upload_to_s3_raises_upload_error_on_client_error() -> None:
+    storage = _build_storage()
     file = _build_upload_file()
     client = AsyncMock()
     client.put_object.side_effect = ClientError(
@@ -155,14 +82,14 @@ async def test_handle_put_object_raises_s3_upload_error_on_client_error() -> Non
     client_context.__aenter__.return_value = client
     client_context.__aexit__.return_value = None
 
-    with patch.object(service, "_get_client", return_value=client_context):
+    with patch.object(storage, "_get_client", return_value=client_context):
         with pytest.raises(S3UploadError, match="Failed to upload file"):
-            await service._handle_put_object(file, "key.png")
+            await storage._upload_to_s3(file, "key.png")
 
 
 @pytest.mark.asyncio
-async def test_handle_delete_object_raises_s3_delete_error_on_client_error() -> None:
-    service = _build_service()
+async def test_delete_from_s3_raises_delete_error_on_client_error() -> None:
+    storage = _build_storage()
     client = AsyncMock()
     client.delete_object.side_effect = ClientError(
         {"Error": {"Code": "500", "Message": "delete failed"}},
@@ -172,6 +99,6 @@ async def test_handle_delete_object_raises_s3_delete_error_on_client_error() -> 
     client_context.__aenter__.return_value = client
     client_context.__aexit__.return_value = None
 
-    with patch.object(service, "_get_client", return_value=client_context):
+    with patch.object(storage, "_get_client", return_value=client_context):
         with pytest.raises(S3DeleteError, match="Failed to delete file"):
-            await service._handle_delete_object("key.png")
+            await storage._delete_from_s3("key.png")
