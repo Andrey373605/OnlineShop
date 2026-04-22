@@ -1,7 +1,8 @@
 from fastapi import Request
 
-from shop.app.services.s3_service import S3Service
+from shop.app.core.ports.storage import StoragePort
+from shop.app.core.state import get_app_state
 
 
-async def get_s3_service(request: Request) -> S3Service:
-    return request.app.state.s3_service
+async def get_storage_service(request: Request) -> StoragePort:
+    return get_app_state(request).storage

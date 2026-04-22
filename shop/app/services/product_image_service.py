@@ -5,6 +5,7 @@ from shop.app.core.exceptions import (
     NotFoundError,
     OperationFailedError,
 )
+from shop.app.core.ports.storage import StoragePort
 from shop.app.models.domain.product_image import ProductImageCreateData
 from shop.app.models.schemas import (
     ProductImageCreate,
@@ -14,24 +15,27 @@ from shop.app.models.schemas import (
     ProductImageUpdate,
 )
 from shop.app.repositories.protocols import UnitOfWork
-from shop.app.services.s3_service import S3Service
 
 
 class ProductImageService:
-    def __init__(self, uow: UnitOfWork, s3_service: S3Service):
+    def __init__(
+        self,
+        uow: UnitOfWork,
+        storage: StoragePort,
+        media_url_prefix: str,
+    ) -> None:
         self._uow = uow
-        self._s3 = s3_service
+        self._storage = storage
+        self._media_url_prefix = media_url_prefix.rstrip("/")
 
     async def create_image(
-        self, data: ProductImageCreate, file: UploadFile
+        self, data: ProductImageCreate, file: UploadFile, content_length: int | None = None
     ) -> ProductImageResponse:
         async with self._uow as uow:
             await self._ensure_product_exists(uow, data.product_id)
-            image_name = await self._s3.upload_file(file)
-            image_path = f"/media/{image_name}"
-            db_data = ProductImageCreateData(
-                product_id=data.product_id, image_path=image_path
-            )
+            image_key = await self._storage.upload_file(file, content_length)
+            image_path = self._build_media_url(image_key)
+            db_data = ProductImageCreateData(product_id=data.product_id, image_path=image_path)
             image_id = await uow.product_images.create(db_data)
             if not image_id:
                 raise OperationFailedError("Failed to create product image")
@@ -82,7 +86,7 @@ class ProductImageService:
             if not success:
                 raise OperationFailedError("Failed to delete product image")
             await uow.commit()
-        await self._s3.delete_file(image.image_path)
+        await self._storage.delete_file(self._extract_storage_key(image.image_path))
 
         return ProductImageResponse(
             id=image_id,
@@ -99,7 +103,7 @@ class ProductImageService:
             deleted_ids = await uow.product_images.delete_by_product_id(product_id)
             await uow.commit()
         for image in images:
-            await self._s3.delete_file(image.image_path)
+            await self._storage.delete_file(self._extract_storage_key(image.image_path))
 
         return ProductImagesDeleteResponse(
             product_id=product_id,
@@ -118,3 +122,13 @@ class ProductImageService:
         exists = await uow.products.exists_product_with_id(product_id)
         if not exists:
             raise NotFoundError("Product")
+
+    def _build_media_url(self, storage_key: str) -> str:
+        return f"{self._media_url_prefix}/{storage_key}"
+
+    def _extract_storage_key(self, media_url: str) -> str:
+        prefix = f"{self._media_url_prefix}/"
+        if not media_url.startswith(prefix):
+            raise DomainValidationError("Invalid media url")
+
+        return media_url.removeprefix(prefix)

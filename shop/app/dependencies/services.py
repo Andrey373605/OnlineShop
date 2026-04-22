@@ -2,11 +2,12 @@ from fastapi import Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from shop.app.core.config import settings
+from shop.app.core.ports.storage import StoragePort
 from shop.app.dependencies.cache import get_cache_service
 from shop.app.dependencies.db import get_uow
 from shop.app.dependencies.mongo import get_mongo_db
 from shop.app.dependencies.pubsub import get_pubsub_service
-from shop.app.dependencies.s3 import get_s3_service
+from shop.app.dependencies.s3 import get_storage_service
 from shop.app.dependencies.session import get_session_service
 from shop.app.repositories.event_log_analytics_repository import (
     EventLogAnalyticsRepositoryMongo,
@@ -34,7 +35,6 @@ from shop.app.services.product_specification_service import (
 from shop.app.services.pubsub_service import PubSubService
 from shop.app.services.review_service import ReviewService
 from shop.app.services.role_service import RoleService
-from shop.app.services.s3_service import S3Service
 from shop.app.services.session_service import SessionService
 from shop.app.services.user_service import UserService
 
@@ -56,22 +56,27 @@ async def get_product_service(
     uow: UnitOfWork = Depends(get_uow),
     cache: CacheService = Depends(get_cache_service),
     pubsub: PubSubService = Depends(get_pubsub_service),
-    s3_service: S3Service = Depends(get_s3_service),
+    storage: StoragePort = Depends(get_storage_service),
 ) -> ProductService:
     return ProductService(
         uow=uow,
         cache=cache,
         pubsub=pubsub,
-        s3_service=s3_service,
+        storage=storage,
+        media_url_prefix=settings.MEDIA_URL_PREFIX,
         cache_ttl_seconds=settings.PRODUCTS_CACHE_TTL_SECONDS or None,
     )
 
 
 async def get_product_image_service(
     uow: UnitOfWork = Depends(get_uow),
-    s3_service: S3Service = Depends(get_s3_service),
+    storage: StoragePort = Depends(get_storage_service),
 ) -> ProductImageService:
-    return ProductImageService(uow=uow, s3_service=s3_service)
+    return ProductImageService(
+        uow=uow,
+        storage=storage,
+        media_url_prefix=settings.MEDIA_URL_PREFIX,
+    )
 
 
 async def get_product_specification_service(

@@ -1,6 +1,7 @@
 from fastapi import UploadFile
 
-from shop.app.core.exceptions import NotFoundError, OperationFailedError
+from shop.app.core.exceptions import DomainValidationError, NotFoundError, OperationFailedError
+from shop.app.core.ports.storage import StoragePort
 from shop.app.models.schemas import (
     ProductCreate,
     ProductOut,
@@ -10,7 +11,6 @@ from shop.app.models.schemas import (
 from shop.app.repositories.protocols import UnitOfWork
 from shop.app.services.cache_service import CacheService
 from shop.app.services.pubsub_service import PubSubChannel, PubSubService
-from shop.app.services.s3_service import S3Service
 
 
 class ProductService:
@@ -19,13 +19,15 @@ class ProductService:
         uow: UnitOfWork,
         cache: CacheService,
         pubsub: PubSubService,
-        s3_service: S3Service,
+        storage: StoragePort,
+        media_url_prefix: str,
         cache_ttl_seconds: int | None = None,
-    ):
+    ) -> None:
         self._uow = uow
         self._cache = cache
         self._pubsub = pubsub
-        self._s3 = s3_service
+        self._storage = storage
+        self._media_url_prefix = media_url_prefix.rstrip("/")
         self._cache_ttl_seconds = cache_ttl_seconds
         self._cache_pattern = "products:limit:*"
 
@@ -111,7 +113,9 @@ class ProductService:
             if not success:
                 raise OperationFailedError("Failed to delete product")
             await uow.commit()
-        await self._s3.delete_by_media_url(product.thumbnail_url)
+        await self._storage.delete_file(
+            self._extract_storage_key(product.thumbnail_url)
+        )
 
         await self._cache.delete_by_pattern(self._cache_pattern)
         await self._pubsub.publish(
@@ -125,3 +129,10 @@ class ProductService:
             data={"entity": "products", "action": "delete", "entity_id": product_id},
         )
         return ProductResponse(id=product_id, message="Product deleted successfully")
+
+    def _extract_storage_key(self, media_url: str) -> str:
+        prefix = f"{self._media_url_prefix}/"
+        if not media_url.startswith(prefix):
+            raise DomainValidationError("Invalid media url")
+
+        return media_url.removeprefix(prefix)

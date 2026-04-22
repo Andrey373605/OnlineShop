@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, Form, Path, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Path, Request, UploadFile, status, Header
 
 from shop.app.dependencies.auth import get_current_user
 from shop.app.dependencies.services import (
@@ -29,13 +29,14 @@ async def create_product_image(
     request: Request,
     product_id: int = Form(...),
     file: UploadFile = File(...),
+    content_length: int = Header(None),
     current_user: UserOut = Depends(get_current_user),
     service: ProductImageService = Depends(get_product_image_service),
     event_log_service: EventLogService = Depends(get_event_log_service),
 ):
     _ensure_admin(current_user)
     data = ProductImageCreate(product_id=product_id)
-    response = await service.create_image(data, file)
+    response = await service.create_image(data, file, content_length)
     await event_log_service.log_event(
         "PRODUCT_IMAGE_CREATED",
         user_id=current_user.id,
@@ -130,8 +131,7 @@ async def delete_product_images_by_product(
     await event_log_service.log_event(
         "PRODUCT_IMAGE_BULK_DELETED",
         user_id=current_user.id,
-        description=f"Images for product #{product_id} "
-        f"deleted by {current_user.username}",
+        description=f"Images for product #{product_id} " f"deleted by {current_user.username}",
         request=request,
     )
     return response
