@@ -52,19 +52,17 @@ class DomainValidationError(AppError):
     pass
 
 
-class S3Error(AppError):
-    """Ошибка S3"""
-
+class StorageError(AppError):
     pass
 
 
-class S3UploadError(S3Error):
-    """Ошибка загрузки в S3"""
-
+class StorageValidationError(StorageError):
     pass
 
 
-class S3DeleteError(S3Error):
-    """Ошибка удаления из S3"""
+class StorageUnavailableError(StorageError):
+    pass
 
+
+class StorageObjectNotFoundError(StorageError):
     pass

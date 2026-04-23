@@ -1,7 +1,6 @@
-from fastapi import UploadFile
-
-from shop.app.core.exceptions import DomainValidationError, NotFoundError, OperationFailedError
+from shop.app.core.exceptions import NotFoundError, OperationFailedError
 from shop.app.core.ports.storage import StoragePort
+from shop.app.models.domain.upload_source import UploadSource
 from shop.app.models.schemas import (
     ProductCreate,
     ProductOut,
@@ -20,18 +19,16 @@ class ProductService:
         cache: CacheService,
         pubsub: PubSubService,
         storage: StoragePort,
-        media_url_prefix: str,
         cache_ttl_seconds: int | None = None,
     ) -> None:
         self._uow = uow
         self._cache = cache
         self._pubsub = pubsub
         self._storage = storage
-        self._media_url_prefix = media_url_prefix.rstrip("/")
         self._cache_ttl_seconds = cache_ttl_seconds
         self._cache_pattern = "products:limit:*"
 
-    async def create_product(self, data: ProductCreate, thumbnail: UploadFile) -> dict:
+    async def create_product(self, data: ProductCreate, source: UploadSource) -> dict:
         async with self._uow as uow:
             if not await uow.categories.exists_category_with_id(data.category_id):
                 raise NotFoundError("Category")
@@ -71,21 +68,17 @@ class ProductService:
             products = await uow.products.get_all(limit=limit, offset=offset)
 
         items_str = [p.model_dump_json() for p in products]
-        await self._cache.set_list_atomic(
-            key, items_str, ttl_seconds=self._cache_ttl_seconds
-        )
+        await self._cache.set_list_atomic(key, items_str, ttl_seconds=self._cache_ttl_seconds)
         return products
 
     async def update_product(
-        self, product_id: int, data: ProductUpdate, thumbnail: UploadFile
+        self, product_id: int, data: ProductUpdate, source: UploadSource | None
     ) -> ProductResponse:
         async with self._uow as uow:
             if not await uow.products.exists_product_with_id(product_id):
                 raise NotFoundError("Product")
 
-            success = await uow.products.update(
-                product_id, data.model_dump(exclude_unset=True)
-            )
+            success = await uow.products.update(product_id, data.model_dump(exclude_unset=True))
             if not success:
                 raise OperationFailedError("Failed to update product")
             await uow.commit()
@@ -113,9 +106,7 @@ class ProductService:
             if not success:
                 raise OperationFailedError("Failed to delete product")
             await uow.commit()
-        await self._storage.delete_file(
-            self._extract_storage_key(product.thumbnail_url)
-        )
+        await self._storage.delete(product.thumbnail_key)
 
         await self._cache.delete_by_pattern(self._cache_pattern)
         await self._pubsub.publish(
@@ -129,10 +120,3 @@ class ProductService:
             data={"entity": "products", "action": "delete", "entity_id": product_id},
         )
         return ProductResponse(id=product_id, message="Product deleted successfully")
-
-    def _extract_storage_key(self, media_url: str) -> str:
-        prefix = f"{self._media_url_prefix}/"
-        if not media_url.startswith(prefix):
-            raise DomainValidationError("Invalid media url")
-
-        return media_url.removeprefix(prefix)

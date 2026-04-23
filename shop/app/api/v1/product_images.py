@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, File, Form, Path, Request, UploadFile, status, Header
 
+from shop.app.api.mappers.uploads import map_upload_file
 from shop.app.dependencies.auth import get_current_user
 from shop.app.dependencies.services import (
     get_event_log_service,
@@ -36,7 +37,8 @@ async def create_product_image(
 ):
     _ensure_admin(current_user)
     data = ProductImageCreate(product_id=product_id)
-    response = await service.create_image(data, file, content_length)
+    source = map_upload_file(file, content_length)
+    response = await service.create_image(data, source)
     await event_log_service.log_event(
         "PRODUCT_IMAGE_CREATED",
         user_id=current_user.id,
@@ -66,31 +68,6 @@ async def get_product_images_by_product(
     service: ProductImageService = Depends(get_product_image_service),
 ):
     return await service.get_images_by_product_id(product_id)
-
-
-@router.put(
-    "/{image_id}",
-    response_model=ProductImageResponse,
-)
-async def update_product_image(
-    request: Request,
-    image_id: int = Path(..., gt=0),
-    file: UploadFile | None = File(None),
-    current_user: UserOut = Depends(get_current_user),
-    service: ProductImageService = Depends(get_product_image_service),
-    event_log_service: EventLogService = Depends(get_event_log_service),
-):
-    _ensure_admin(current_user)
-    data = ProductImageUpdate()
-    response = await service.update_image(image_id, data, file)
-
-    await event_log_service.log_event(
-        "PRODUCT_IMAGE_UPDATED",
-        user_id=current_user.id,
-        description=f"Image #{image_id} updated by {current_user.username}",
-        request=request,
-    )
-    return response
 
 
 @router.delete(

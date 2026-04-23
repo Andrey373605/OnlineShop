@@ -1,7 +1,8 @@
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, File, Form, Path, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Path, Request, UploadFile, Header
 
+from shop.app.api.mappers.uploads import map_upload_file
 from shop.app.dependencies.auth import get_current_user
 from shop.app.dependencies.pagination import CommonPaginationParams
 from shop.app.dependencies.services import get_event_log_service, get_product_service
@@ -29,6 +30,7 @@ async def create_product(
     is_published: bool = Form(...),
     category_id: int = Form(...),
     thumbnail: UploadFile = File(...),
+    content_length: int = Header(None),
     current_user: UserOut = Depends(get_current_user),
     product_service: ProductService = Depends(get_product_service),
     event_log_service: EventLogService = Depends(get_event_log_service),
@@ -43,7 +45,8 @@ async def create_product(
         is_published=is_published,
         category_id=category_id,
     )
-    response = await product_service.create_product(data, thumbnail)
+    source = map_upload_file(thumbnail, content_length)
+    response = await product_service.create_product(data, source)
     await event_log_service.log_event(
         "PRODUCT_CREATED",
         user_id=current_user.id,
@@ -81,6 +84,7 @@ async def update_product(
     is_published: bool = Form(...),
     category_id: int = Form(...),
     thumbnail: UploadFile | None = File(None),
+    content_length: int = Header(None),
     current_user: UserOut = Depends(get_current_user),
     product_service: ProductService = Depends(get_product_service),
     event_log_service: EventLogService = Depends(get_event_log_service),
@@ -95,7 +99,8 @@ async def update_product(
         is_published=is_published,
         category_id=category_id,
     )
-    response = await product_service.update_product(product_id, data, thumbnail)
+    source = map_upload_file(thumbnail, content_length) if thumbnail else None
+    response = await product_service.update_product(product_id, data, source)
     await event_log_service.log_event(
         "PRODUCT_UPDATED",
         user_id=current_user.id,

@@ -20,7 +20,7 @@ class ProductImageRepositorySql:
 
     async def create(self, product: ProductImageCreateData) -> int:
         result = await self._queries.create_product_image(
-            self._conn, product_id=product.product_id, image_path=product.image_path
+            self._conn, product_id=product.product_id, storage_key=product.storage_key
         )
         return result["id"]
 

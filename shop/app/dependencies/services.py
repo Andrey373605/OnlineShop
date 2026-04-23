@@ -25,6 +25,7 @@ from shop.app.services.cart_service import CartService
 from shop.app.services.category_service import CategoryService
 from shop.app.services.event_log_analytics_service import EventLogAnalyticsService
 from shop.app.services.event_log_service import EventLogService
+from shop.app.services.media_url_builder import MediaUrlBuilder
 from shop.app.services.order_item_service import OrderItemService
 from shop.app.services.order_service import OrderService
 from shop.app.services.product_image_service import ProductImageService
@@ -63,20 +64,20 @@ async def get_product_service(
         cache=cache,
         pubsub=pubsub,
         storage=storage,
-        media_url_prefix=settings.MEDIA_URL_PREFIX,
         cache_ttl_seconds=settings.PRODUCTS_CACHE_TTL_SECONDS or None,
     )
+
+
+async def get_media_url_builder():
+    return MediaUrlBuilder(settings.MEDIA_URL_PREFIX)
 
 
 async def get_product_image_service(
     uow: UnitOfWork = Depends(get_uow),
     storage: StoragePort = Depends(get_storage_service),
+    media_url_builder=Depends(get_media_url_builder),
 ) -> ProductImageService:
-    return ProductImageService(
-        uow=uow,
-        storage=storage,
-        media_url_prefix=settings.MEDIA_URL_PREFIX,
-    )
+    return ProductImageService(uow=uow, storage=storage, media_url_builder=media_url_builder)
 
 
 async def get_product_specification_service(
