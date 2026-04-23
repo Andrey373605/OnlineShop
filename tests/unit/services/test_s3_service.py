@@ -7,7 +7,7 @@ from fastapi import UploadFile
 from starlette.datastructures import Headers
 
 from shop.app.adapters.s3.storage import S3Storage
-from shop.app.core.exceptions import DomainValidationError, S3DeleteError, S3UploadError
+from shop.app.core.exceptions import DomainValidationError, StorageError, StorageUnavailableError
 
 
 def _build_storage() -> S3Storage:
@@ -83,7 +83,7 @@ async def test_upload_to_s3_raises_upload_error_on_client_error() -> None:
     client_context.__aexit__.return_value = None
 
     with patch.object(storage, "_get_client", return_value=client_context):
-        with pytest.raises(S3UploadError, match="Failed to upload file"):
+        with pytest.raises(StorageError, match="Failed to upload file"):
             await storage._upload_to_s3(file, "key.png")
 
 
@@ -100,5 +100,5 @@ async def test_delete_from_s3_raises_delete_error_on_client_error() -> None:
     client_context.__aexit__.return_value = None
 
     with patch.object(storage, "_get_client", return_value=client_context):
-        with pytest.raises(S3DeleteError, match="Failed to delete file"):
+        with pytest.raises(StorageUnavailableError, match="Failed to delete file"):
             await storage._delete_from_s3("key.png")
