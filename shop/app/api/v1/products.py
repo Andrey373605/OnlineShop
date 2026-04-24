@@ -1,17 +1,25 @@
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, File, Form, Path, Request, UploadFile, Header
+from starlette import status
+from starlette.status import HTTP_200_OK
 
 from shop.app.api.mappers.uploads import map_upload_file
 from shop.app.dependencies.auth import get_current_user
 from shop.app.dependencies.pagination import CommonPaginationParams
-from shop.app.dependencies.services import get_event_log_service, get_product_service
+from shop.app.dependencies.services import (
+    get_event_log_service,
+    get_product_service,
+    get_product_presenter,
+)
 from shop.app.models.schemas import (
     ProductCreate,
     ProductResponse,
     ProductUpdate,
     UserOut,
+    ProductOut,
 )
+from shop.app.presenters.product_presenter import ProductPresenter
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.product_service import ProductService
 from shop.app.utils.ensure_admin import _ensure_admin
@@ -19,7 +27,11 @@ from shop.app.utils.ensure_admin import _ensure_admin
 router = APIRouter(prefix="/products", tags=["Products"])
 
 
-@router.post("/", response_model=ProductResponse)
+@router.post(
+    "/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ProductResponse,
+)
 async def create_product(
     request: Request,
     title: str = Form(...),
@@ -34,6 +46,7 @@ async def create_product(
     current_user: UserOut = Depends(get_current_user),
     product_service: ProductService = Depends(get_product_service),
     event_log_service: EventLogService = Depends(get_event_log_service),
+    presenter: ProductPresenter = Depends(get_product_presenter),
 ):
     _ensure_admin(current_user)
     data = ProductCreate(
@@ -46,33 +59,51 @@ async def create_product(
         category_id=category_id,
     )
     source = map_upload_file(thumbnail, content_length)
-    response = await product_service.create_product(data, source)
+    product = await product_service.create_product(data, source)
+
     await event_log_service.log_event(
         "PRODUCT_CREATED",
         user_id=current_user.id,
-        description=f"Product #{response['id']} created by {current_user.username}",
+        description=f"Product #{product.id} created by {current_user.username}",
         request=request,
     )
-    return response
+
+    return presenter.to_out(product)
 
 
-@router.get("/{product_id}")
+@router.get(
+    "/{product_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=ProductOut,
+)
 async def get_product_by_id(
     product_id: int = Path(),
     product_service: ProductService = Depends(get_product_service),
+    presenter: ProductPresenter = Depends(get_product_presenter),
 ):
-    return await product_service.get_product_by_id(product_id)
+    product = await product_service.get_product_by_id(product_id)
+    return presenter.to_out(product)
 
 
-@router.get("/")
+@router.get(
+    "/",
+    status_code=status.HTTP_200_OK,
+    response_model=list[ProductOut],
+)
 async def get_all_products(
     product_service: ProductService = Depends(get_product_service),
     pagination: CommonPaginationParams = Depends(CommonPaginationParams),
+    presenter: ProductPresenter = Depends(get_product_presenter),
 ):
-    return await product_service.get_all_products(pagination.limit, pagination.offset)
+    products = await product_service.get_all_products(pagination.limit, pagination.offset)
+    return presenter.to_out_list(products)
 
 
-@router.put("/{product_id}")
+@router.put(
+    "/{product_id}",
+    status_code=HTTP_200_OK,
+    response_model=ProductOut,
+)
 async def update_product(
     request: Request,
     product_id: int = Path(),
@@ -88,6 +119,7 @@ async def update_product(
     current_user: UserOut = Depends(get_current_user),
     product_service: ProductService = Depends(get_product_service),
     event_log_service: EventLogService = Depends(get_event_log_service),
+    presenter: ProductPresenter = Depends(get_product_presenter),
 ):
     _ensure_admin(current_user)
     data = ProductUpdate(
@@ -100,17 +132,23 @@ async def update_product(
         category_id=category_id,
     )
     source = map_upload_file(thumbnail, content_length) if thumbnail else None
-    response = await product_service.update_product(product_id, data, source)
+    product = await product_service.update_product(product_id, data, source)
+
     await event_log_service.log_event(
         "PRODUCT_UPDATED",
         user_id=current_user.id,
         description=f"Product #{product_id} updated by {current_user.username}",
         request=request,
     )
-    return response
+
+    return presenter.to_out(product)
 
 
-@router.delete("/{product_id}")
+@router.delete(
+    "/{product_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
 async def delete_product(
     request: Request,
     product_id: int = Path(),
@@ -119,11 +157,11 @@ async def delete_product(
     event_log_service: EventLogService = Depends(get_event_log_service),
 ):
     _ensure_admin(current_user)
-    response = await product_service.delete_product(product_id)
+    await product_service.delete_product(product_id)
+
     await event_log_service.log_event(
         "PRODUCT_DELETED",
         user_id=current_user.id,
         description=f"Product #{product_id} deleted by {current_user.username}",
         request=request,
     )
-    return response
