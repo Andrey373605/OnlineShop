@@ -5,13 +5,13 @@ from shop.app.core.exceptions import (
     NotFoundError,
     OperationFailedError,
 )
+from shop.app.models.domain.product import Product
 from shop.app.models.schemas import (
     CartItemAdd,
     CartItemOut,
     CartItemQuantityUpdate,
     CartOut,
     CartWithItems,
-    ProductOut,
 )
 from shop.app.repositories.protocols import UnitOfWork
 
@@ -122,9 +122,7 @@ class CartService:
     @staticmethod
     async def _recalculate_total(uow: UnitOfWork, cart_id: int) -> Decimal:
         items = await uow.cart_items.get_by_cart_id(cart_id)
-        total = sum(
-            (item.product_price or Decimal("0")) * item.quantity for item in items
-        )
+        total = sum((item.product_price or Decimal("0")) * item.quantity for item in items)
         await uow.carts.update(
             cart_id,
             {"total_amount": total},
@@ -132,7 +130,7 @@ class CartService:
         return total
 
     @staticmethod
-    async def _get_product_or_raise(uow: UnitOfWork, product_id: int) -> ProductOut:
+    async def _get_product_or_raise(uow: UnitOfWork, product_id: int) -> Product:
         product = await uow.products.get_by_id(product_id)
         if not product:
             raise NotFoundError("Product")
@@ -150,7 +148,7 @@ class CartService:
         return cart_item
 
     @staticmethod
-    def _validate_quantity(quantity: int, product: ProductOut) -> None:
+    def _validate_quantity(quantity: int, product: Product) -> None:
         if quantity <= 0:
             raise DomainValidationError("Quantity must be greater than zero")
         if quantity > product.stock:
