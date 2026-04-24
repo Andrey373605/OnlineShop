@@ -28,7 +28,7 @@ CREATE TABLE products (
     price DECIMAL(10,2) NOT NULL,
     stock INTEGER NOT NULL,
     brand VARCHAR(50) NOT NULL,
-    thumbnail_url VARCHAR(500),
+    thumbnail_key VARCHAR(500),
     is_published BOOLEAN DEFAULT True NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
@@ -45,10 +45,10 @@ CREATE TABLE product_specifications (
 
 CREATE TABLE product_images (
     id SERIAL PRIMARY KEY,
-    image_path VARCHAR(500) NOT NULL,
+    storage_key VARCHAR(500) NOT NULL,
     product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE ,
 
-    UNIQUE(product_id, image_path)
+    UNIQUE(product_id, storage_key)
 );
 
 CREATE TABLE carts (
