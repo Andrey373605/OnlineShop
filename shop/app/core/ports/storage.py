@@ -7,6 +7,18 @@ from shop.app.models.domain.upload_source import UploadSource
 class StoragePort(Protocol):
     """Abstraction for operations with file storage"""
 
+    async def connect(self) -> None:
+        """Create connection with the storage"""
+        ...
+
+    async def close(self) -> None:
+        """Close connection with the storage"""
+        ...
+
+    async def ensure_ready(self) -> None:
+        """Verify that storage is reachable and ready for operations."""
+        ...
+
     async def upload(self, source: UploadSource) -> str:
         """Upload file and return storage key"""
         ...

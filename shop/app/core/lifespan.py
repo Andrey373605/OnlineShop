@@ -58,7 +58,7 @@ def _create_session_service(cache_service: CacheService) -> SessionService:
     )
 
 
-def _create_storage() -> S3Storage:
+def create_storage() -> S3Storage:
     return S3Storage(
         access_key=settings.MINIO_ACCESS_KEY,
         secret_key=settings.MINIO_SECRET_KEY,
@@ -120,7 +120,11 @@ async def lifespan(app: FastAPI):
         cache_service,
         session_service,
     )
-    storage = _create_storage()
+
+    # S3
+    storage = create_storage()
+    await storage.connect()
+    await storage.ensure_ready()
 
     app.state.ext = AppState(
         db_pool=db_pool,
@@ -140,7 +144,9 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # --- shutdown (обратный порядок) ---
+    # --- shutdown ---
+    await storage.close()
+
     await _close_pubsub(pubsub_service, pubsub_redis, pubsub_task)
     close_mongo_client(mongo_client)
     await cache_service.disconnect()
