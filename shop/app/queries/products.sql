@@ -9,11 +9,8 @@ SELECT p.id,
        p.brand,
        p.thumbnail_key,
        p.is_published,
-       p.created_at,
-       c.id as category_id,
-       c.name as category_name
+       p.category_id
 FROM products p
-LEFT JOIN categories c ON p.category_id = c.id
 ORDER BY p.id
 LIMIT :limit OFFSET :offset;
 
@@ -29,24 +26,14 @@ SELECT p.id,
        p.brand,
        p.thumbnail_key,
        p.is_published,
-       p.created_at,
-       p.updated_at,
-       c.id as category_id,
-       c.name as categoty_name,
-       COALESCE(
-            (SELECT json_agg(json_build_object('id', pi.id, 'path', pi.image_path))
-             FROM product_images pi
-             WHERE pi.product_id = p.id),
-            '[]'
-       ) AS images
+       p.category_id
 FROM products p
-LEFT JOIN categories c ON p.category_id = c.id
 WHERE p.id = :id;
 
 -- name: create-product^
 INSERT INTO products (title, description, price, stock, brand, thumbnail_key, is_published, category_id)
 VALUES (:title, :description, :price, :stock, :brand, :thumbnail_key, :is_published, :category_id)
-RETURNING id;
+RETURNING id, title, description, price, stock, brand, thumbnail_key, is_published, category_id;
 
 -- name: update-product^
 UPDATE products
@@ -61,7 +48,7 @@ SET
     category_id   = COALESCE(:category_id, category_id),
     updated_at    = NOW()
 WHERE id = :id
-RETURNING id;
+RETURNING id, title, description, price, stock, brand, thumbnail_key, is_published, category_id;
 
 -- name: delete-product^
 DELETE FROM products
