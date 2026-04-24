@@ -10,6 +10,8 @@ from shop.app.core.exceptions import (
     OperationFailedError,
     PermissionDeniedError,
     ServiceUnavailableError,
+    StorageUnavailableError,
+    StorageValidationError,
 )
 
 _STATUS_MAP: dict[type[AppError], int] = {
@@ -20,6 +22,9 @@ _STATUS_MAP: dict[type[AppError], int] = {
     PermissionDeniedError: 403,
     OperationFailedError: 500,
     ServiceUnavailableError: 503,
+    # Storage
+    StorageUnavailableError: 503,
+    StorageValidationError: 400,
 }
 
 

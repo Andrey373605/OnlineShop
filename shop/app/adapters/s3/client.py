@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
-from typing import AsyncContextManager, Any
+from typing import AsyncContextManager, Any, AsyncGenerator
 
+from aiobotocore.client import AioBaseClient
 from aiobotocore.session import get_session
 from botocore.config import Config
 
@@ -11,7 +12,7 @@ async def create_aiobotocore_client(
     access_key: str,
     secret_key: str,
     config: Config,
-) -> AsyncContextManager[Any]:
+) -> AsyncGenerator[Any, Any]:
     """Factory for creating S3 client"""
     session = get_session()
     async with session.create_client(
