@@ -23,7 +23,7 @@ class ProductUpdate(ProductBase):
 
 class ProductOut(ProductBase):
     id: int
-    thumbnail_key: str
+    thumbnail_url: str
 
 
 class ProductResponse(BaseModel):
