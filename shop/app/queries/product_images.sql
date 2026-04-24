@@ -18,7 +18,7 @@ WHERE id = :id;
 -- name: create-product-image^
 INSERT INTO product_images (product_id, storage_key)
 VALUES (:product_id, :storage_key)
-RETURNING id;
+RETURNING id, product_id, storage_key;
 
 -- name: update-product-image^
 UPDATE product_images

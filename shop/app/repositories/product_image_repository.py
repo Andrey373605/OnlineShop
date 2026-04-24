@@ -1,5 +1,4 @@
-from shop.app.models.domain.product_image import ProductImageCreateData
-from shop.app.models.schemas import ProductImageOut
+from shop.app.models.domain.product_image import ProductImageCreateData, ProductImage
 
 
 class ProductImageRepositorySql:
@@ -7,36 +6,36 @@ class ProductImageRepositorySql:
         self._conn = conn
         self._queries = queries
 
-    async def get_by_product_id(self, product_id: int) -> list[ProductImageOut]:
+    async def get_by_product_id(self, product_id: int) -> list[ProductImage]:
         rows = await self._queries.get_product_images_by_product_id(
             self._conn,
             product_id=product_id,
         )
-        return [ProductImageOut(**row) for row in rows]
+        return [ProductImage(**row) for row in rows]
 
-    async def get_by_id(self, image_id: int) -> ProductImageOut | None:
+    async def get_by_id(self, image_id: int) -> ProductImage | None:
         row = await self._queries.get_product_image_by_id(self._conn, id=image_id)
-        return ProductImageOut(**row) if row else None
+        return ProductImage(**row) if row else None
 
-    async def create(self, product: ProductImageCreateData) -> int:
-        result = await self._queries.create_product_image(
+    async def create(self, product: ProductImageCreateData) -> ProductImage:
+        row = await self._queries.create_product_image(
             self._conn, product_id=product.product_id, storage_key=product.storage_key
         )
-        return result["id"]
+        return ProductImage(**row)
 
-    async def update(self, image_id: int, data: dict) -> bool:
-        result = await self._queries.update_product_image(
+    async def update(self, image_id: int, data: dict) -> ProductImage:
+        row = await self._queries.update_product_image(
             self._conn,
             id=image_id,
             **data,
         )
-        return bool(result)
+        return ProductImage(**row)
 
     async def delete(self, image_id: int) -> bool:
         result = await self._queries.delete_product_image(self._conn, id=image_id)
-        return bool(result)
+        return result
 
-    async def delete_by_product_id(self, product_id: int):
+    async def delete_by_product_id(self, product_id: int) -> list[int]:
         rows = await self._queries.delete_product_images_by_product_id(
             self._conn,
             product_id=product_id,
