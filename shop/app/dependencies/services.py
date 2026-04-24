@@ -9,6 +9,8 @@ from shop.app.dependencies.mongo import get_mongo_db
 from shop.app.dependencies.pubsub import get_pubsub_service
 from shop.app.dependencies.s3 import get_storage_service
 from shop.app.dependencies.session import get_session_service
+from shop.app.presenters.product_image_presenter import ProductImagePresenter
+from shop.app.presenters.product_presenter import ProductPresenter
 from shop.app.repositories.event_log_analytics_repository import (
     EventLogAnalyticsRepositoryMongo,
 )
@@ -68,16 +70,27 @@ async def get_product_service(
     )
 
 
-async def get_media_url_builder():
+async def get_media_url_builder() -> MediaUrlBuilder:
     return MediaUrlBuilder(settings.MEDIA_URL_PREFIX)
 
 
 async def get_product_image_service(
     uow: UnitOfWork = Depends(get_uow),
     storage: StoragePort = Depends(get_storage_service),
-    media_url_builder=Depends(get_media_url_builder),
 ) -> ProductImageService:
-    return ProductImageService(uow=uow, storage=storage, media_url_builder=media_url_builder)
+    return ProductImageService(uow=uow, storage=storage)
+
+
+async def get_product_image_presenter(
+    media_url_builder: MediaUrlBuilder = Depends(get_media_url_builder),
+) -> ProductImagePresenter:
+    return ProductImagePresenter(media_url_builder=media_url_builder)
+
+
+async def get_product_presenter(
+    media_url_builder: MediaUrlBuilder = Depends(get_media_url_builder),
+) -> ProductPresenter:
+    return ProductPresenter(media_url_builder=media_url_builder)
 
 
 async def get_product_specification_service(
