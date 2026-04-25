@@ -1,68 +1,29 @@
 class AppError(Exception):
-    """Базовое доменное исключение приложения."""
+    message: str
+    code: str = "internal_server_error"
+    status_code: int = 500
 
-    def __init__(self, message: str = "An application error occurred"):
+    def __init__(self, message: str, details: dict | None = None):
         self.message = message
-        super().__init__(message)
+        self.details = details or {}
+        super().__init__(self.message)
 
 
-class NotFoundError(AppError):
-    """Запрашиваемый ресурс не найден."""
-
-    def __init__(self, resource: str = "Resource", message: str | None = None):
-        self.resource = resource
-        super().__init__(message or f"{resource} not found")
+class EntityNotFoundError(AppError):
+    code = "entity_not_found"
+    status_code = 404
 
 
-class AlreadyExistsError(AppError):
-    """Ресурс с такими данными уже существует."""
-
-    def __init__(self, resource: str = "Resource", message: str | None = None):
-        self.resource = resource
-        super().__init__(message or f"{resource} already exists")
-
-
-class OperationFailedError(AppError):
-    """Внутренняя операция завершилась неуспешно."""
-
-    pass
-
-
-class ServiceUnavailableError(AppError):
-    """Зависимый сервис или ресурс недоступен."""
-
-    pass
-
-
-class AuthenticationError(AppError):
-    """Ошибка аутентификации."""
-
-    pass
-
-
-class PermissionDeniedError(AppError):
-    """Недостаточно прав для выполнения операции."""
-
-    pass
+class ConflictError(AppError):
+    code = "conflict_error"
+    status_code = 409
 
 
 class DomainValidationError(AppError):
-    """Нарушение бизнес-правила валидации."""
-
-    pass
-
-
-class StorageError(AppError):
-    pass
+    code = "validation_error"
+    status_code = 400
 
 
-class StorageValidationError(StorageError):
-    pass
-
-
-class StorageUnavailableError(StorageError):
-    pass
-
-
-class StorageObjectNotFoundError(StorageError):
-    pass
+class ApplicationUnavailableError(AppError):
+    code = "application_unavailable"
+    status_code = 503

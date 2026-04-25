@@ -1,14 +1,12 @@
 from aiobotocore.client import AioBaseClient
 from aiobotocore.session import get_session
 from botocore.config import Config
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, BotoCoreError
 
+from shop.app.adapters.s3.exceptions import StorageUnavailableError, StorageValidationError
 from shop.app.adapters.s3.filename_gen import UUIDFilenameGenerator
 from shop.app.adapters.s3.validator import FileValidationRules, FileValidator
-from shop.app.core.exceptions import (
-    StorageUnavailableError,
-    StorageValidationError,
-)
+
 from shop.app.core.ports.storage import StoragePort
 from shop.app.models.domain.upload_source import UploadSource
 
@@ -43,7 +41,7 @@ class S3Storage(StoragePort):
 
     def _get_client(self) -> AioBaseClient:
         if self._client is None:
-            raise RuntimeError("S3Storage is not connected. Call connect() first.")
+            raise StorageUnavailableError("Storage client is not connected.")
         return self._client
 
     async def connect(self) -> None:
@@ -75,7 +73,7 @@ class S3Storage(StoragePort):
         client = self._get_client()
         try:
             await client.head_bucket(Bucket=self._bucket_name)
-        except ClientError as exc:
+        except (ClientError, BotoCoreError) as exc:
             raise StorageUnavailableError("Storage is not ready") from exc
 
     async def upload(self, source: UploadSource) -> str:
@@ -98,12 +96,12 @@ class S3Storage(StoragePort):
                 Key=storage_key,
                 ContentType=source.content_type,
             )
-        except ClientError as exc:
+        except (ClientError, BotoCoreError) as exc:
             raise StorageUnavailableError("Failed to upload object to storage") from exc
 
     async def _delete_from_s3(self, key: str) -> None:
         client = self._get_client()
         try:
             await client.delete_object(Bucket=self._bucket_name, Key=key)
-        except ClientError as exc:
+        except (ClientError, BotoCoreError) as exc:
             raise StorageUnavailableError("Failed to delete object to storage") from exc

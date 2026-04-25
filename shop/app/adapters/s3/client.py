@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
-from typing import AsyncContextManager, Any, AsyncGenerator
+from typing import Any, AsyncGenerator
 
-from aiobotocore.client import AioBaseClient
 from aiobotocore.session import get_session
 from botocore.config import Config
 

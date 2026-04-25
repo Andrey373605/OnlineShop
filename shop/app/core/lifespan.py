@@ -134,6 +134,7 @@ async def lifespan(app: FastAPI):
         session_service=session_service,
         pubsub_service=pubsub_service,
         storage=storage,
+        storage_readiness=storage,
     )
 
     logger.info(

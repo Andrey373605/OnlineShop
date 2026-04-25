@@ -7,6 +7,19 @@ from shop.app.models.domain.upload_source import UploadSource
 class StoragePort(Protocol):
     """Abstraction for operations with file storage"""
 
+    async def upload(self, source: UploadSource) -> str:
+        """Upload file and return storage key"""
+        ...
+
+    async def delete(self, key: str) -> None:
+        """Delete file by storage key"""
+        ...
+
+
+@runtime_checkable
+class ManageStoragePort(Protocol):
+    """Interface for managing the storage infrastructure lifecycle."""
+
     async def connect(self) -> None:
         """Create connection with the storage"""
         ...
@@ -15,16 +28,11 @@ class StoragePort(Protocol):
         """Close connection with the storage"""
         ...
 
+
+@runtime_checkable
+class StorageReadinessPort(Protocol):
     async def ensure_ready(self) -> None:
         """Verify that storage is reachable and ready for operations."""
-        ...
-
-    async def upload(self, source: UploadSource) -> str:
-        """Upload file and return storage key"""
-        ...
-
-    async def delete(self, key: str) -> None:
-        """Delete file by storage key"""
         ...
 
 
