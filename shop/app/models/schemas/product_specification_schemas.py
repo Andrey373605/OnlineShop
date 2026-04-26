@@ -22,14 +22,3 @@ class ProductSpecificationOut(ProductSpecificationBase):
     id: int
     created_at: datetime
     updated_at: datetime
-
-
-class ProductSpecificationResponse(BaseModel):
-    id: int
-    message: str
-
-
-
-
-
-

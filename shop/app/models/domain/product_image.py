@@ -8,6 +8,12 @@ class ProductImageCreateData:
 
 
 @dataclass
+class ProductImageUpdateData:
+    product_id: int | None = None
+    storage_key: str | None = None
+
+
+@dataclass
 class ProductImage:
     id: int
     product_id: int

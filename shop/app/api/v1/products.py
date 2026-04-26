@@ -14,12 +14,11 @@ from shop.app.dependencies.services import (
 )
 from shop.app.models.schemas import (
     ProductCreate,
-    ProductResponse,
     ProductUpdate,
     UserOut,
     ProductOut,
 )
-from shop.app.presenters.product_presenter import ProductPresenter
+from shop.app.api.presenters.product_presenter import ProductPresenter
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.product_service import ProductService
 from shop.app.utils.ensure_admin import _ensure_admin
@@ -30,7 +29,7 @@ router = APIRouter(prefix="/products", tags=["Products"])
 @router.post(
     "/",
     status_code=status.HTTP_201_CREATED,
-    response_model=ProductResponse,
+    response_model=ProductOut,
 )
 async def create_product(
     request: Request,

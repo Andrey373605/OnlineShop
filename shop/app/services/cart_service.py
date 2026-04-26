@@ -2,8 +2,6 @@ from decimal import Decimal
 
 from shop.app.core.exceptions import (
     DomainValidationError,
-    NotFoundError,
-    OperationFailedError,
 )
 from shop.app.models.domain.product import Product
 from shop.app.models.schemas import (

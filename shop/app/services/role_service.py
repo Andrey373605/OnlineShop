@@ -1,8 +1,3 @@
-from shop.app.core.exceptions import (
-    AlreadyExistsError,
-    NotFoundError,
-    OperationFailedError,
-)
 from shop.app.models.schemas import (
     RoleCreate,
     RoleOut,
@@ -31,32 +26,16 @@ class RoleService:
 
     async def create_role(self, data: RoleCreate) -> RoleResponse:
         async with self._uow as uow:
-            if await uow.roles.exists_with_name(data.name):
-                raise AlreadyExistsError("Role name")
 
-            role_id = await uow.roles.create(data.name)
-            if not role_id:
-                raise OperationFailedError("Failed to create role")
+            role = await uow.roles.create(data.name)
             await uow.commit()
 
-        await self._invalidate_roles_cache()
-        await self._pubsub.publish(
-            PubSubChannel.CACHE_INVALIDATION,
-            event="cache_invalidated",
-            data={"entity": "roles", "key": ROLES_CACHE_KEY},
-        )
-        await self._pubsub.publish(
-            PubSubChannel.DATA_CHANGE,
-            event="data_changed",
-            data={"entity": "roles", "action": "create", "entity_id": role_id},
-        )
-        return RoleResponse(id=role_id, message="Role created successfully")
+        await self._after_mutation(role.id, "create")
+        return RoleResponse(id=role.id, message="Role created successfully")
 
     async def get_role_by_id(self, role_id: int) -> RoleOut:
         async with self._uow as uow:
             role = await uow.roles.get_by_id(role_id)
-            if not role:
-                raise NotFoundError("Role")
             return role
 
     async def get_all_roles(self) -> list[RoleOut]:
@@ -75,54 +54,33 @@ class RoleService:
 
     async def update_role(self, role_id: int, data: RoleUpdate) -> RoleResponse:
         async with self._uow as uow:
-            role = await uow.roles.get_by_id(role_id)
-            if not role:
-                raise NotFoundError("Role")
 
-            if await uow.roles.exists_with_name(data.name):
-                raise AlreadyExistsError("Role name")
-
-            success = await uow.roles.update(role_id, data.name)
-            if not success:
-                raise OperationFailedError("Failed to update role")
+            role = await uow.roles.update(role_id, data.name)
             await uow.commit()
 
-        await self._invalidate_roles_cache()
-        await self._pubsub.publish(
-            PubSubChannel.CACHE_INVALIDATION,
-            event="cache_invalidated",
-            data={"entity": "roles", "key": ROLES_CACHE_KEY},
-        )
-        await self._pubsub.publish(
-            PubSubChannel.DATA_CHANGE,
-            event="data_changed",
-            data={"entity": "roles", "action": "update", "entity_id": role_id},
-        )
-        return RoleResponse(id=role_id, message="Role updated successfully")
+        await self._after_mutation(role_id, "update")
+        return RoleResponse(id=role.id, message="Role updated successfully")
 
     async def delete_role(self, role_id: int) -> RoleResponse:
         async with self._uow as uow:
-            role = await uow.roles.get_by_id(role_id)
-            if not role:
-                raise NotFoundError("Role")
-
-            success = await uow.roles.delete(role_id)
-            if not success:
-                raise OperationFailedError("Failed to delete role")
+            await uow.roles.delete(role_id)
             await uow.commit()
 
-        await self._invalidate_roles_cache()
-        await self._pubsub.publish(
-            PubSubChannel.CACHE_INVALIDATION,
-            event="cache_invalidated",
-            data={"entity": "roles", "key": ROLES_CACHE_KEY},
-        )
-        await self._pubsub.publish(
-            PubSubChannel.DATA_CHANGE,
-            event="data_changed",
-            data={"entity": "roles", "action": "delete", "entity_id": role_id},
-        )
+        await self._after_mutation(role_id, "delete")
         return RoleResponse(id=role_id, message="Role deleted successfully")
 
     async def _invalidate_roles_cache(self) -> None:
         await self._cache.delete(ROLES_CACHE_KEY)
+
+    async def _after_mutation(self, entity_id: int, action: str) -> None:
+        await self._invalidate_roles_cache()
+        await self._pubsub.publish(
+            PubSubChannel.CACHE_INVALIDATION,
+            event="cache_invalidated",
+            data={"entity": "roles", "key": ROLES_CACHE_KEY},
+        )
+        await self._pubsub.publish(
+            PubSubChannel.DATA_CHANGE,
+            event="data_changed",
+            data={"entity": "roles", "action": action, "entity_id": entity_id},
+        )

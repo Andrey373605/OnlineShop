@@ -1,7 +1,5 @@
 from shop.app.core.exceptions import (
     DomainValidationError,
-    NotFoundError,
-    OperationFailedError,
 )
 from shop.app.models.schemas import (
     OrderItemCreate,
@@ -41,9 +39,7 @@ class OrderItemService:
             payload["order_id"] = order_id
 
             item_id = await uow.order_items.create(payload)
-            item = await self._get_item_or_fail(
-                uow, item_id, "Unable to fetch created order item"
-            )
+            item = await self._get_item_or_fail(uow, item_id, "Unable to fetch created order item")
             await uow.commit()
             return item
 
@@ -71,9 +67,7 @@ class OrderItemService:
             if not updated:
                 raise OperationFailedError("Failed to update order item")
 
-            item = await self._get_item_or_fail(
-                uow, item_id, "Unable to fetch updated order item"
-            )
+            item = await self._get_item_or_fail(uow, item_id, "Unable to fetch updated order item")
             await uow.commit()
             return item
 
@@ -109,9 +103,7 @@ class OrderItemService:
         return item
 
     @staticmethod
-    async def _get_item_or_fail(
-        uow: UnitOfWork, item_id: int, detail: str
-    ) -> OrderItemOut:
+    async def _get_item_or_fail(uow: UnitOfWork, item_id: int, detail: str) -> OrderItemOut:
         item = await uow.order_items.get_by_id(item_id)
         if not item:
             raise OperationFailedError(detail)
