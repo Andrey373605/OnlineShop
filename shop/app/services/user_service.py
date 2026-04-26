@@ -1,8 +1,3 @@
-from shop.app.core.exceptions import (
-    AlreadyExistsError,
-    NotFoundError,
-    OperationFailedError,
-)
 from shop.app.core.security import hash_password
 from shop.app.models.schemas import (
     UserCreate,
@@ -34,8 +29,6 @@ class UserService:
     async def get_user_by_id(self, user_id: int) -> UserOut:
         async with self._uow as uow:
             user = await uow.users.get_by_id(user_id)
-            if not user:
-                raise NotFoundError("User")
             return user
 
     async def list_users(self, limit: int, offset: int) -> list[UserOut]:
@@ -49,26 +42,16 @@ class UserService:
             users = await uow.users.get_all(limit=limit, offset=offset)
 
         users_str = [u.model_dump_json() for u in users]
-        await self._cache.set_list_atomic(
-            key, users_str, ttl_seconds=self._cache_ttl_seconds
-        )
+        await self._cache.set_list_atomic(key, users_str, ttl_seconds=self._cache_ttl_seconds)
         return users
 
     async def create_user(self, payload: UserCreate) -> UserOut:
         async with self._uow as uow:
-            if await uow.users.exists_with_username(payload.username):
-                raise AlreadyExistsError("Username")
-
-            if await uow.users.exists_with_email(payload.email):
-                raise AlreadyExistsError("Email")
 
             user_data = payload.model_dump(exclude={"password"})
             user_data["password_hash"] = hash_password(payload.password)
 
-            user_id = await uow.users.create(user_data)
-            user = await uow.users.get_by_id(user_id)
-            if not user:
-                raise OperationFailedError("Unable to fetch created user")
+            user = await uow.users.create(user_data)
             await uow.commit()
 
         await self._cache.delete_by_pattern(self._cache_pattern)
@@ -86,9 +69,7 @@ class UserService:
 
     async def update_user(self, user_id: int, payload: UserUpdate) -> UserOut:
         async with self._uow as uow:
-            existing = await uow.users.get_by_id(user_id)
-            if not existing:
-                raise NotFoundError("User")
+            user = await uow.users.get_by_id(user_id)
 
             update_data = payload.model_dump(exclude_unset=True)
 
@@ -96,13 +77,9 @@ class UserService:
                 update_data["password_hash"] = hash_password(update_data["password"])
                 del update_data["password"]
 
-            updated = await uow.users.update(user_id, update_data)
-            if not updated:
-                raise OperationFailedError("Failed to update user")
+            user = await uow.users.update(user_id, update_data)
 
             user = await uow.users.get_by_id(user_id)
-            if not user:
-                raise OperationFailedError("Unable to fetch updated user")
             await uow.commit()
 
         await self._cache.delete_by_pattern(self._cache_pattern)
@@ -127,13 +104,7 @@ class UserService:
 
     async def delete_user(self, user_id: int) -> None:
         async with self._uow as uow:
-            existing = await uow.users.get_by_id(user_id)
-            if not existing:
-                raise NotFoundError("User")
-
-            deleted = await uow.users.delete(user_id)
-            if not deleted:
-                raise OperationFailedError("Failed to delete user")
+            await uow.users.delete(user_id)
             await uow.commit()
 
         await self._cache.delete_by_pattern(self._cache_pattern)

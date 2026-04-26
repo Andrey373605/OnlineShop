@@ -1,8 +1,3 @@
-from shop.app.core.exceptions import (
-    AlreadyExistsError,
-    NotFoundError,
-    OperationFailedError,
-)
 from shop.app.models.schemas import (
     CategoryCreate,
     CategoryOut,
@@ -31,32 +26,15 @@ class CategoryService:
 
     async def create_category(self, data: CategoryCreate) -> dict:
         async with self._uow as uow:
-            if await uow.categories.exists_category_with_name(data.name):
-                raise AlreadyExistsError("Category name")
-
             category_id = await uow.categories.create(data.model_dump())
-            if not category_id:
-                raise OperationFailedError("Failed to create category")
             await uow.commit()
 
-        await self._invalidate_cache()
-        await self._pubsub.publish(
-            PubSubChannel.CACHE_INVALIDATION,
-            event="cache_invalidated",
-            data={"entity": "categories", "key": CATEGORIES_CACHE_KEY},
-        )
-        await self._pubsub.publish(
-            PubSubChannel.DATA_CHANGE,
-            event="data_changed",
-            data={"entity": "categories", "action": "create", "entity_id": category_id},
-        )
+        await self._after_mutation(category_id, "create")
         return {"id": category_id, "message": "Category created successfully"}
 
     async def get_category_by_id(self, category_id: int) -> CategoryOut:
         async with self._uow as uow:
             category = await uow.categories.get_by_id(category_id)
-            if not category:
-                raise NotFoundError("Category")
             return category
 
     async def get_all_categories(self) -> list[CategoryOut]:
@@ -73,54 +51,23 @@ class CategoryService:
         )
         return categories
 
-    async def update_category(
-        self, category_id: int, data: CategoryUpdate
-    ) -> CategoryResponse:
+    async def update_category(self, category_id: int, data: CategoryUpdate) -> CategoryResponse:
         async with self._uow as uow:
-            if not await uow.categories.exists_category_with_id(category_id):
-                raise NotFoundError("Category")
 
-            success = await uow.categories.update(
-                category_id, data.model_dump(exclude_unset=True)
-            )
-            if not success:
-                raise OperationFailedError("Failed to update category")
+            category = await uow.categories.update(category_id, data.model_dump(exclude_unset=True))
+
             await uow.commit()
 
-        await self._invalidate_cache()
-        await self._pubsub.publish(
-            PubSubChannel.CACHE_INVALIDATION,
-            event="cache_invalidated",
-            data={"entity": "categories", "key": CATEGORIES_CACHE_KEY},
-        )
-        await self._pubsub.publish(
-            PubSubChannel.DATA_CHANGE,
-            event="data_changed",
-            data={"entity": "categories", "action": "update", "entity_id": category_id},
-        )
+        await self._after_mutation(category_id, "update")
         return CategoryResponse(id=category_id, message="Category updated successfully")
 
     async def delete_category(self, category_id: int) -> CategoryResponse:
         async with self._uow as uow:
-            if not await uow.categories.exists_category_with_id(category_id):
-                raise NotFoundError("Category")
 
-            success = await uow.categories.delete(category_id)
-            if not success:
-                raise OperationFailedError("Failed to delete category")
+            await uow.categories.delete(category_id)
             await uow.commit()
 
-        await self._invalidate_cache()
-        await self._pubsub.publish(
-            PubSubChannel.CACHE_INVALIDATION,
-            event="cache_invalidated",
-            data={"entity": "categories", "key": CATEGORIES_CACHE_KEY},
-        )
-        await self._pubsub.publish(
-            PubSubChannel.DATA_CHANGE,
-            event="data_changed",
-            data={"entity": "categories", "action": "delete", "entity_id": category_id},
-        )
+        await self._after_mutation(category_id, "delete")
         return CategoryResponse(id=category_id, message="Category deleted successfully")
 
     async def category_id_exists(self, category_id: int) -> bool:
@@ -129,3 +76,17 @@ class CategoryService:
 
     async def _invalidate_cache(self) -> None:
         await self._cache.delete(CATEGORIES_CACHE_KEY)
+
+    async def _after_mutation(self, entity_id: int, action: str) -> None:
+        await self._invalidate_cache()
+
+        await self._pubsub.publish(
+            PubSubChannel.CACHE_INVALIDATION,
+            event="cache_invalidated",
+            data={"entity": "categories", "key": CATEGORIES_CACHE_KEY},
+        )
+        await self._pubsub.publish(
+            PubSubChannel.DATA_CHANGE,
+            event="data_changed",
+            data={"entity": "categories", "action": action, "entity_id": entity_id},
+        )

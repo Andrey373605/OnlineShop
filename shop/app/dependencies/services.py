@@ -9,8 +9,8 @@ from shop.app.dependencies.mongo import get_mongo_db
 from shop.app.dependencies.pubsub import get_pubsub_service
 from shop.app.dependencies.s3 import get_storage_service
 from shop.app.dependencies.session import get_session_service
-from shop.app.presenters.product_image_presenter import ProductImagePresenter
-from shop.app.presenters.product_presenter import ProductPresenter
+from shop.app.api.presenters.product_image_presenter import ProductImagePresenter
+from shop.app.api.presenters.product_presenter import ProductPresenter
 from shop.app.repositories.event_log_analytics_repository import (
     EventLogAnalyticsRepositoryMongo,
 )

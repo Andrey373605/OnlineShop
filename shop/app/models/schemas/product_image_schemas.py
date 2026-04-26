@@ -11,11 +11,6 @@ class ProductImageOut(BaseModel):
     image_url: str
 
 
-class ProductImageResponse(BaseModel):
-    id: int
-    message: str
-
-
 class ProductImagesDeleteResponse(BaseModel):
     product_id: int
     deleted_ids: list[int]

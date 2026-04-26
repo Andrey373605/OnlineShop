@@ -10,11 +10,10 @@ from shop.app.dependencies.services import (
 from shop.app.models.schemas import (
     ProductImageCreate,
     ProductImageOut,
-    ProductImageResponse,
     ProductImagesDeleteResponse,
     UserOut,
 )
-from shop.app.presenters.product_image_presenter import ProductImagePresenter
+from shop.app.api.presenters.product_image_presenter import ProductImagePresenter
 from shop.app.services.event_log_service import EventLogService
 from shop.app.services.product_image_service import ProductImageService
 from shop.app.utils.ensure_admin import _ensure_admin
@@ -24,7 +23,7 @@ router = APIRouter(prefix="/product-images", tags=["Product Images"])
 
 @router.post(
     "/",
-    response_model=ProductImageResponse,
+    response_model=ProductImageOut,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_product_image(
@@ -105,7 +104,7 @@ async def delete_product_image(
 
 @router.delete(
     "/product/{product_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_200_OK,
     response_model=ProductImagesDeleteResponse,
 )
 async def delete_product_images_by_product(

@@ -1,6 +1,11 @@
+import logging
+
+from shop.app.adapters.s3.exceptions import StorageValidationError, StorageUnavailableError
 from shop.app.core.exceptions import (
-    NotFoundError,
-    OperationFailedError,
+    EntityNotFoundError,
+    ApplicationUnavailableError,
+    DomainValidationError,
+    ConflictError,
 )
 from shop.app.core.ports.storage import StoragePort
 from shop.app.models.domain.product_image import (
@@ -12,7 +17,18 @@ from shop.app.models.domain.upload_source import UploadSource
 from shop.app.models.schemas import (
     ProductImageCreate,
 )
+from shop.app.repositories.exceptions import (
+    RepositoryRecordNotFoundError,
+    RepositoryUnavailableError,
+    RepositoryMappingError,
+    RepositoryUnexpectedResultError,
+    RepositoryForeignKeyError,
+    RepositoryUniqueConstraintError,
+)
 from shop.app.repositories.protocols import UnitOfWork
+
+
+logger = logging.getLogger(__name__)
 
 
 class ProductImageService:
@@ -21,65 +37,130 @@ class ProductImageService:
         self._storage = storage
 
     async def create_image(self, data: ProductImageCreate, source: UploadSource) -> ProductImage:
-        async with self._uow as uow:
-            await self._ensure_product_exists(uow, data.product_id)
+        try:
             storage_key = await self._storage.upload(source)
-            product_image_data = ProductImageCreateData(
-                product_id=data.product_id, storage_key=storage_key
-            )
-            product_image = await uow.product_images.create(product_image_data)
-            if not product_image:
-                raise OperationFailedError("Failed to create product image")
-            await uow.commit()
+        except StorageValidationError as exc:
+            raise DomainValidationError("Invalid image file") from exc
+        except StorageUnavailableError as exc:
+            raise ApplicationUnavailableError("Image storage is unavailable") from exc
 
-        return product_image
+        try:
+            async with self._uow as uow:
+                product_image_data = ProductImageCreateData(
+                    product_id=data.product_id,
+                    storage_key=storage_key,
+                )
+                product_image = await uow.product_images.create(product_image_data)
+                await uow.commit()
+                return product_image
+        except RepositoryForeignKeyError as exc:
+            await self._delete_orphan_object(storage_key)
+            raise EntityNotFoundError(
+                "Product not found",
+                details={"product_id": data.product_id},
+            ) from exc
+        except RepositoryUniqueConstraintError as exc:
+            await self._delete_orphan_object(storage_key)
+            raise ConflictError(
+                "Product image already exists",
+                details={"product_id": data.product_id},
+            ) from exc
+        except (
+            RepositoryUnavailableError,
+            RepositoryMappingError,
+            RepositoryUnexpectedResultError,
+        ) as exc:
+            await self._delete_orphan_object(storage_key)
+            raise ApplicationUnavailableError("Failed to create product image") from exc
 
     async def get_image_by_id(self, image_id: int) -> ProductImage:
         async with self._uow as uow:
-            return await self._get_image_or_raise(uow, image_id)
+            try:
+                return await uow.product_images.get_by_id(image_id)
+            except RepositoryRecordNotFoundError as exc:
+                raise EntityNotFoundError(
+                    "Product image not found",
+                    details={"image_id": image_id},
+                ) from exc
+            except (
+                RepositoryUnavailableError,
+                RepositoryMappingError,
+                RepositoryUnexpectedResultError,
+            ) as exc:
+                raise ApplicationUnavailableError("Failed to fetch product image") from exc
 
     async def get_images_by_product_id(self, product_id: int) -> list[ProductImage]:
         async with self._uow as uow:
-            await self._ensure_product_exists(uow, product_id)
-            return await uow.product_images.get_by_product_id(product_id)
+            try:
+                return await uow.product_images.get_by_product_id(product_id)
+            except RepositoryUnavailableError as exc:
+                raise ApplicationUnavailableError("Failed to fetch product images") from exc
+            except RepositoryMappingError as exc:
+                raise ApplicationUnavailableError("Failed to map product images") from exc
 
     async def delete_image(self, image_id: int) -> None:
         async with self._uow as uow:
-            image = await self._get_image_or_raise(uow, image_id)
+            try:
+                image = await uow.product_images.get_by_id(image_id)
+                await uow.product_images.delete(image_id)
+                await uow.commit()
+            except RepositoryRecordNotFoundError as exc:
+                raise EntityNotFoundError(
+                    "Product image not found",
+                    details={"image_id": image_id},
+                ) from exc
+            except (
+                RepositoryUnavailableError,
+                RepositoryMappingError,
+                RepositoryUnexpectedResultError,
+            ) as exc:
+                raise ApplicationUnavailableError("Failed to delete product image") from exc
 
-            success = await uow.product_images.delete(image_id)
-            if not success:
-                raise OperationFailedError("Failed to delete product image")
-            await uow.commit()
-        await self._storage.delete(image.storage_key)
+        await self._delete_storage_object_best_effort(image.storage_key)
 
     async def delete_images_by_product_id(
         self,
         product_id: int,
     ) -> ProductImagesDeleteResult:
         async with self._uow as uow:
-            await self._ensure_product_exists(uow, product_id)
-            images = await uow.product_images.get_by_product_id(product_id)
-            deleted_ids = await uow.product_images.delete_by_product_id(product_id)
-            await uow.commit()
+            try:
+                images = await uow.product_images.get_by_product_id(product_id)
+                deleted_ids = await uow.product_images.delete_by_product_id(product_id)
+                await uow.commit()
+            except (
+                RepositoryUnavailableError,
+                RepositoryMappingError,
+                RepositoryUnexpectedResultError,
+            ) as exc:
+                raise ApplicationUnavailableError(
+                    "Failed to delete product images",
+                    details={"product_id": product_id},
+                ) from exc
 
         for image in images:
-            await self._storage.delete(image.storage_key)
+            await self._delete_storage_object_best_effort(image.storage_key)
 
         return ProductImagesDeleteResult(
             product_id=product_id,
             deleted_ids=deleted_ids,
         )
 
-    @staticmethod
-    async def _get_image_or_raise(uow: UnitOfWork, image_id: int) -> ProductImage:
-        image = await uow.product_images.get_by_id(image_id)
-        if not image:
-            raise NotFoundError("Product image")
-        return image
+    async def _delete_orphan_object(self, storage_key: str) -> None:
+        try:
+            await self._storage.delete(storage_key)
+        except Exception:
+            logger.warning(
+                "Failed to delete orphan product image: %s",
+                storage_key,
+                exc_info=True,
+            )
 
-    @staticmethod
-    async def _ensure_product_exists(uow: UnitOfWork, product_id: int) -> None:
-        exists = await uow.products.exists_product_with_id(product_id)
-        if not exists:
-            raise NotFoundError("Product")
+    async def _delete_storage_object_best_effort(self, storage_key: str) -> None:
+        try:
+            await self._storage.delete(storage_key)
+        except Exception:
+            logger.warning(
+                "Failed to delete product image object: %s",
+                storage_key,
+                exc_info=True,
+            )
