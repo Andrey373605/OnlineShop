@@ -10,5 +10,4 @@ from shop.app.repositories.user_repository import UserRepositorySql
 async def get_user_repository(
     conn: asyncpg.Connection = Depends(get_db),
 ) -> UserRepository:
-    """Используется только в ``get_current_user`` (JWT-проверка), где полный UoW не нужен."""
     return UserRepositorySql(conn=conn, queries=queries)
