@@ -2,7 +2,6 @@ import asyncpg
 from asyncpg.connection import Connection
 from asyncpg.transaction import Transaction
 
-from shop.app.core.db import queries
 from shop.app.repositories.cart_item_repository import CartItemRepositorySql
 from shop.app.repositories.cart_repository import CartRepositorySql
 from shop.app.repositories.category_repository import CategoryRepositorySql
@@ -47,15 +46,15 @@ class SqlUnitOfWork(UnitOfWork):
         await self._tx.rollback()
 
     def _init_repositories(self) -> None:
-        self.categories = CategoryRepositorySql(self._conn, queries)
-        self.products = ProductRepositorySql(self._conn, queries)
-        self.users = UserRepositorySql(self._conn, queries)
-        self.roles = RoleRepositorySql(self._conn, queries)
-        self.product_specifications = ProductSpecificationRepositorySql(self._conn, queries)
-        self.product_images = ProductImageRepositorySql(self._conn, queries)
-        self.carts = CartRepositorySql(self._conn, queries)
-        self.cart_items = CartItemRepositorySql(self._conn, queries)
-        self.reviews = ReviewRepositorySql(self._conn, queries)
-        self.orders = OrderRepositorySql(self._conn, queries)
-        self.order_items = OrderItemRepositorySql(self._conn, queries)
-        self.refresh_tokens = RefreshTokenRepositorySql(self._conn, queries)
+        self.categories = CategoryRepositorySql(self._conn)
+        self.products = ProductRepositorySql(self._conn)
+        self.users = UserRepositorySql(self._conn)
+        self.roles = RoleRepositorySql(self._conn)
+        self.product_specifications = ProductSpecificationRepositorySql(self._conn)
+        self.product_images = ProductImageRepositorySql(self._conn)
+        self.carts = CartRepositorySql(self._conn)
+        self.cart_items = CartItemRepositorySql(self._conn)
+        self.reviews = ReviewRepositorySql(self._conn)
+        self.orders = OrderRepositorySql(self._conn)
+        self.order_items = OrderItemRepositorySql(self._conn)
+        self.refresh_tokens = RefreshTokenRepositorySql(self._conn)

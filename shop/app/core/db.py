@@ -1,12 +1,6 @@
-from pathlib import Path
-
-import aiosql
 import asyncpg
 
 from shop.app.core.config import settings
-
-_QUERIES_DIR = Path(__file__).resolve().parent.parent / "queries"
-queries = aiosql.from_path(_QUERIES_DIR, "asyncpg")
 
 
 async def create_db_pool() -> asyncpg.Pool:
