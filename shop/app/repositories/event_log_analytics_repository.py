@@ -1,9 +1,10 @@
 from datetime import datetime
 
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorDatabase
+from shop.app.repositories.protocols import EventLogAnalyticsRepository
 
 
-class EventLogAnalyticsRepositoryMongo:
+class EventLogAnalyticsRepositoryMongo(EventLogAnalyticsRepository):
     def __init__(self, db: AsyncIOMotorDatabase):
         self._db = db
 

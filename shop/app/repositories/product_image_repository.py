@@ -15,18 +15,23 @@ from shop.app.repositories.exceptions import (
     RepositoryForeignKeyError,
     RepositoryUniqueConstraintError,
 )
+from shop.app.repositories.protocols import ProductImageRepository
 
 
-class ProductImageRepositorySql:
-    def __init__(self, conn, queries):
+class ProductImageRepositorySql(ProductImageRepository):
+    def __init__(self, conn):
         self._conn = conn
-        self._queries = queries
 
     async def get_by_product_id(self, product_id: int) -> list[ProductImage]:
         try:
-            rows = await self._queries.get_product_images_by_product_id(
-                self._conn,
-                product_id=product_id,
+            rows = await self._conn.fetch(
+                """
+                SELECT id, product_id, storage_key
+                FROM product_images
+                WHERE product_id = $1
+                ORDER BY id;
+                """,
+                product_id,
             )
         except asyncpg.PostgresError as exc:
             raise RepositoryUnavailableError("Failed to fetch product image") from exc
@@ -35,7 +40,10 @@ class ProductImageRepositorySql:
 
     async def get_by_id(self, image_id: int) -> ProductImage:
         try:
-            row = await self._queries.get_product_image_by_id(self._conn, id=image_id)
+            row = await self._conn.fetchrow(
+                "SELECT id, product_id, storage_key FROM product_images WHERE id = $1;",
+                image_id,
+            )
         except asyncpg.PostgresError as exc:
             raise RepositoryUnavailableError("Failed to fetch product image") from exc
 
@@ -48,10 +56,14 @@ class ProductImageRepositorySql:
 
     async def create(self, image_data: ProductImageCreateData) -> ProductImage:
         try:
-            row = await self._queries.create_product_image(
-                self._conn,
-                product_id=image_data.product_id,
-                storage_key=image_data.storage_key,
+            row = await self._conn.fetchrow(
+                """
+                INSERT INTO product_images (product_id, storage_key)
+                VALUES ($1, $2)
+                RETURNING id, product_id, storage_key;
+                """,
+                image_data.product_id,
+                image_data.storage_key,
             )
         except asyncpg.ForeignKeyViolationError as exc:
             raise RepositoryForeignKeyError("Product does not exist") from exc
@@ -71,10 +83,17 @@ class ProductImageRepositorySql:
         normalized_data = self._normalize_update_data(image_data)
 
         try:
-            row = await self._queries.update_product_image(
-                self._conn,
-                id=image_id,
-                **normalized_data,
+            row = await self._conn.fetchrow(
+                """
+                UPDATE product_images
+                SET product_id = COALESCE($2, product_id),
+                    storage_key = COALESCE($3, storage_key)
+                WHERE id = $1
+                RETURNING id, product_id, storage_key;
+                """,
+                image_id,
+                normalized_data["product_id"],
+                normalized_data["storage_key"],
             )
         except asyncpg.ForeignKeyViolationError as exc:
             raise RepositoryForeignKeyError("Product does not exist") from exc
@@ -92,9 +111,12 @@ class ProductImageRepositorySql:
 
         return self._map_row(row)
 
-    async def delete(self, image_id: int) -> None:
+    async def delete(self, image_id: int) -> ProductImage:
         try:
-            row = await self._queries.delete_product_image(self._conn, id=image_id)
+            row = await self._conn.fetchrow(
+                "DELETE FROM product_images WHERE id = $1 RETURNING id, product_id, storage_key;",
+                image_id,
+            )
         except asyncpg.ForeignKeyViolationError as exc:
             raise RepositoryForeignKeyError(
                 "Product image is referenced by another entity"
@@ -105,11 +127,17 @@ class ProductImageRepositorySql:
         if not row:
             raise RepositoryRecordNotFoundError("Product image not found")
 
+        return self._map_row(row)
+
     async def delete_by_product_id(self, product_id: int) -> list[int]:
         try:
-            rows = await self._queries.delete_product_images_by_product_id(
-                self._conn,
-                product_id=product_id,
+            rows = await self._conn.fetch(
+                """
+                DELETE FROM product_images
+                WHERE product_id = $1
+                RETURNING id, product_id, storage_key;
+                """,
+                product_id,
             )
         except asyncpg.ForeignKeyViolationError as exc:
             raise RepositoryForeignKeyError(
