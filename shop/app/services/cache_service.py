@@ -34,7 +34,6 @@ class CacheService:
 
     @property
     def redis_client(self) -> Redis:
-        """Возвращает Redis клиент, выбрасывая исключение если не подключен."""
         if self._redis_client is None:
             raise RuntimeError("CacheService not connected. Call connect() first.")
         return self._redis_client
@@ -81,7 +80,6 @@ class CacheService:
             await pipe.execute()
 
     async def get_value(self, key: str) -> str | None:
-        """Получить строковое значение по ключу (для JSON и др.)."""
         return await self.redis_client.get(key)
 
     async def set_value(
@@ -90,7 +88,6 @@ class CacheService:
         value: str,
         ttl_seconds: int | None = None,
     ) -> None:
-        """Сохранить строковое значение с опциональным TTL (для кэша аналитики и др.)."""
         if ttl_seconds is not None:
             await self.redis_client.setex(key, ttl_seconds, value)
         else:
@@ -100,19 +97,12 @@ class CacheService:
         return f"session:user:{user_id}"
 
     async def get_user_session(self, user_id: int) -> str | None:
-        """Получить закэшированные сессионные данные пользователя (JSON)."""
         return await self.get_value(self._user_session_key(user_id))
 
-    async def set_user_session(
-        self, user_id: int, value: str, ttl_seconds: int
-    ) -> None:
-        """Сохранить сессионные данные пользователя (JSON) с TTL."""
-        await self.set_value(
-            self._user_session_key(user_id), value, ttl_seconds=ttl_seconds
-        )
+    async def set_user_session(self, user_id: int, value: str, ttl_seconds: int) -> None:
+        await self.set_value(self._user_session_key(user_id), value, ttl_seconds=ttl_seconds)
 
     async def delete_user_session(self, user_id: int) -> None:
-        """Удалить кэш сессии пользователя (инвалидация при обновлении/удалении)."""
         await self.delete(self._user_session_key(user_id))
 
     async def disconnect(self) -> None:

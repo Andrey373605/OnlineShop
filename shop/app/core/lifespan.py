@@ -146,6 +146,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # --- shutdown ---
+
     await storage.close()
 
     await _close_pubsub(pubsub_service, pubsub_redis, pubsub_task)
