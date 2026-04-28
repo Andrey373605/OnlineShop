@@ -7,7 +7,8 @@ import asyncpg
 from fastapi import Request
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
-from shop.app.core.ports.storage import StoragePort, StorageReadinessPort
+from shop.app.core.ports.base import HealthCheckPort
+from shop.app.core.ports.file_storage import FileStoragePort
 from shop.app.services.cache_service import CacheService
 from shop.app.services.pubsub_service import PubSubService
 from shop.app.services.session_service import SessionService
@@ -22,8 +23,8 @@ class AppState:
     mongo_db: AsyncIOMotorDatabase
     session_service: SessionService
     pubsub_service: PubSubService
-    storage: StoragePort
-    storage_readiness: StorageReadinessPort
+    storage: FileStoragePort
+    storage_readiness: HealthCheckPort
 
 
 def get_app_state(request: Request) -> AppState:

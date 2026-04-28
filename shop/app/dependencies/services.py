@@ -2,7 +2,7 @@ from fastapi import Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from shop.app.core.config import settings
-from shop.app.core.ports.storage import StoragePort
+from shop.app.core.ports.file_storage import FileStoragePort
 from shop.app.dependencies.cache import get_cache_service
 from shop.app.dependencies.db import get_uow
 from shop.app.dependencies.mongo import get_mongo_db
@@ -59,7 +59,7 @@ async def get_product_service(
     uow: UnitOfWork = Depends(get_uow),
     cache: CacheService = Depends(get_cache_service),
     pubsub: PubSubService = Depends(get_pubsub_service),
-    storage: StoragePort = Depends(get_storage_service),
+    storage: FileStoragePort = Depends(get_storage_service),
 ) -> ProductService:
     return ProductService(
         uow=uow,
@@ -76,7 +76,7 @@ async def get_media_url_builder() -> MediaUrlBuilder:
 
 async def get_product_image_service(
     uow: UnitOfWork = Depends(get_uow),
-    storage: StoragePort = Depends(get_storage_service),
+    storage: FileStoragePort = Depends(get_storage_service),
 ) -> ProductImageService:
     return ProductImageService(uow=uow, storage=storage)
 
