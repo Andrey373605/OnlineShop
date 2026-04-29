@@ -28,7 +28,7 @@ async def create_category(
     await event_log_service.log_event(
         "CATEGORY_CREATED",
         user_id=current_user.id,
-        description=f"Category #{response['id']} created by {current_user.username}",
+        description=f"Category #{response.id} created by {current_user.username}",
         request=request,
     )
     return response

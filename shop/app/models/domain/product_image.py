@@ -1,10 +1,19 @@
 from dataclasses import dataclass
 
+from shop.app.models.schemas import ProductImageCreate
+
 
 @dataclass
 class ProductImageCreateData:
     product_id: int
     storage_key: str
+
+    @classmethod
+    def from_input(cls, data: ProductImageCreate, storage_key: str):
+        return cls(
+            product_id=data.product_id,
+            storage_key=storage_key,
+        )
 
 
 @dataclass

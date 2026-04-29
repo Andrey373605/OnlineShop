@@ -1,13 +1,14 @@
 import logging
 
-from shop.app.adapters.s3.exceptions import StorageValidationError, StorageUnavailableError
 from shop.app.core.exceptions import (
     EntityNotFoundError,
     ApplicationUnavailableError,
     DomainValidationError,
     ConflictError,
+    StorageValidationError,
+    StorageUnavailableError,
 )
-from shop.app.core.ports.storage import StoragePort
+from shop.app.core.ports.file_storage import FileStoragePort
 from shop.app.models.domain.product_image import (
     ProductImageCreateData,
     ProductImage,
@@ -32,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class ProductImageService:
-    def __init__(self, uow: UnitOfWork, storage: StoragePort) -> None:
+    def __init__(self, uow: UnitOfWork, storage: FileStoragePort) -> None:
         self._uow = uow
         self._storage = storage
 
@@ -46,9 +47,8 @@ class ProductImageService:
 
         try:
             async with self._uow as uow:
-                product_image_data = ProductImageCreateData(
-                    product_id=data.product_id,
-                    storage_key=storage_key,
+                product_image_data = ProductImageCreateData.from_input(
+                    data=data, storage_key=storage_key
                 )
                 product_image = await uow.product_images.create(product_image_data)
                 await uow.commit()
@@ -101,12 +101,16 @@ class ProductImageService:
     async def delete_image(self, image_id: int) -> None:
         async with self._uow as uow:
             try:
-                image = await uow.product_images.get_by_id(image_id)
-                await uow.product_images.delete(image_id)
+                image = await uow.product_images.delete(image_id)
                 await uow.commit()
             except RepositoryRecordNotFoundError as exc:
                 raise EntityNotFoundError(
                     "Product image not found",
+                    details={"image_id": image_id},
+                ) from exc
+            except RepositoryForeignKeyError as exc:
+                raise ConflictError(
+                    "Product image is referenced by another entity",
                     details={"image_id": image_id},
                 ) from exc
             except (
@@ -123,10 +127,22 @@ class ProductImageService:
         product_id: int,
     ) -> ProductImagesDeleteResult:
         async with self._uow as uow:
+            exists = await uow.products.exists_product_with_id(product_id)
+            if not exists:
+                raise EntityNotFoundError(
+                    "Product not found",
+                    details={"product_id": product_id},
+                )
+
             try:
                 images = await uow.product_images.get_by_product_id(product_id)
                 deleted_ids = await uow.product_images.delete_by_product_id(product_id)
                 await uow.commit()
+            except RepositoryForeignKeyError as exc:
+                raise ConflictError(
+                    "Product image is referenced by another entity",
+                    details={"product_id": product_id},
+                ) from exc
             except (
                 RepositoryUnavailableError,
                 RepositoryMappingError,
