@@ -1,8 +1,6 @@
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, File, Form, Path, Request, UploadFile, Header
-from starlette import status
-from starlette.status import HTTP_200_OK
+from fastapi import APIRouter, Depends, File, Form, Path, Request, UploadFile, Header, status
 
 from shop.app.api.mappers.uploads import map_upload_file
 from shop.app.dependencies.auth import get_current_user
@@ -76,7 +74,7 @@ async def create_product(
     response_model=ProductOut,
 )
 async def get_product_by_id(
-    product_id: int = Path(),
+    product_id: int = Path(..., gt=0),
     product_service: ProductService = Depends(get_product_service),
     presenter: ProductPresenter = Depends(get_product_presenter),
 ):
@@ -100,12 +98,12 @@ async def get_all_products(
 
 @router.put(
     "/{product_id}",
-    status_code=HTTP_200_OK,
+    status_code=status.HTTP_200_OK,
     response_model=ProductOut,
 )
 async def update_product(
     request: Request,
-    product_id: int = Path(),
+    product_id: int = Path(..., gt=0),
     title: str = Form(...),
     description: str = Form(...),
     price: Decimal = Form(...),
@@ -150,7 +148,7 @@ async def update_product(
 )
 async def delete_product(
     request: Request,
-    product_id: int = Path(),
+    product_id: int = Path(..., gt=0),
     current_user: UserOut = Depends(get_current_user),
     product_service: ProductService = Depends(get_product_service),
     event_log_service: EventLogService = Depends(get_event_log_service),

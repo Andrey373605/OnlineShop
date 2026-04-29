@@ -3,15 +3,16 @@ from aiobotocore.session import get_session
 from botocore.config import Config
 from botocore.exceptions import ClientError, BotoCoreError
 
-from shop.app.adapters.s3.exceptions import StorageUnavailableError, StorageValidationError
 from shop.app.adapters.s3.filename_gen import UUIDFilenameGenerator
-from shop.app.adapters.s3.validator import FileValidationRules, FileValidator
+from shop.app.adapters.s3.validator import FileValidator
+from shop.app.core.exceptions import StorageUnavailableError, StorageValidationError
+from shop.app.core.ports.base import LifecyclePort, HealthCheckPort
 
-from shop.app.core.ports.storage import StoragePort
+from shop.app.core.ports.file_storage import FileStoragePort
 from shop.app.models.domain.upload_source import UploadSource
 
 
-class S3Storage(StoragePort):
+class S3Storage(FileStoragePort, LifecyclePort, HealthCheckPort):
     """File storage adapter S3-compatible client surface"""
 
     def __init__(
@@ -21,17 +22,12 @@ class S3Storage(StoragePort):
         access_key: str,
         secret_key: str,
         bucket_name: str,
-        max_file_size: int,
-        allowed_extensions: set[str],
+        validator: FileValidator,
+        filename_generator: UUIDFilenameGenerator,
     ) -> None:
         self._bucket_name = bucket_name
-        self._validator = FileValidator(
-            FileValidationRules(
-                max_size_bytes=max_file_size,
-                allowed_extensions=allowed_extensions,
-            )
-        )
-        self._filename_generator = UUIDFilenameGenerator()
+        self._validator = validator
+        self._filename_generator = filename_generator
         self._endpoint_url = endpoint_url
         self._access_key = access_key
         self._secret_key = secret_key
