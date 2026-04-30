@@ -1,4 +1,4 @@
-from shop.app.core.security import hash_password
+from shop.app.utils.security import hash_password
 from shop.app.models.schemas import (
     UserCreate,
     UserOut,

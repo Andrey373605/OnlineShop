@@ -6,7 +6,7 @@ from jose import JWTError
 
 from shop.app.core.config import settings
 from shop.app.core.exceptions import AuthenticationError, NotFoundError
-from shop.app.core.security import (
+from shop.app.utils.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
@@ -30,9 +30,7 @@ class AuthTokenService:
             raise AuthenticationError("Invalid refresh token") from exc
         except Exception as exc:
             logger.exception("Unexpected refresh token decode failure")
-            raise AuthenticationError(
-                "Unexpected error while decoding refresh token"
-            ) from exc
+            raise AuthenticationError("Unexpected error while decoding refresh token") from exc
 
         if token_data.get("scope") != "refresh_token":
             raise AuthenticationError("Invalid refresh token scope")
@@ -92,9 +90,7 @@ class AuthTokenService:
         return await self.issue_tokens(uow, user, new_session_id)
 
     @staticmethod
-    async def get_refresh_session_or_unauthorized(
-        uow: UnitOfWork, refresh_token: str
-    ) -> Any:
+    async def get_refresh_session_or_unauthorized(uow: UnitOfWork, refresh_token: str) -> Any:
         token_hash = hash_token(refresh_token)
         stored_token = await uow.refresh_tokens.get_by_hash(token_hash)
         if not stored_token:
