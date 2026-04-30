@@ -1,5 +1,7 @@
 import logging
 
+from shop.app.adapters.s3.filename_gen import UUIDFilenameGenerator
+from shop.app.adapters.s3.validator import FileValidator
 from shop.app.core.exceptions import (
     EntityNotFoundError,
     ApplicationUnavailableError,
@@ -33,13 +35,25 @@ logger = logging.getLogger(__name__)
 
 
 class ProductImageService:
-    def __init__(self, uow: UnitOfWork, storage: FileStoragePort) -> None:
+    def __init__(
+        self,
+        uow: UnitOfWork,
+        storage: FileStoragePort,
+        file_validator: FileValidator,
+        filename_generator: UUIDFilenameGenerator,
+    ) -> None:
         self._uow = uow
         self._storage = storage
+        self._file_validator = file_validator
+        self._filename_generator = filename_generator
 
     async def create_image(self, data: ProductImageCreate, source: UploadSource) -> ProductImage:
+        self._file_validator.validate(source)
+
+        storage_key = self._filename_generator.generate(source)
+
         try:
-            storage_key = await self._storage.upload(source)
+            storage_key = await self._storage.upload(storage_key, source)
         except StorageValidationError as exc:
             raise DomainValidationError("Invalid image file") from exc
         except StorageUnavailableError as exc:

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from shop.app.adapters.s3.exceptions import StorageValidationError
+from shop.app.core.exceptions import StorageValidationError
 from shop.app.models.domain.upload_source import UploadSource
 
 
