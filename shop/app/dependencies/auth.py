@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
-from shop.app.core.security import decode_token
+from shop.app.utils.security import decode_token
 from shop.app.dependencies.session import get_session_service
 from shop.app.models.schemas import UserOut
 from shop.app.services.session_service import SessionService

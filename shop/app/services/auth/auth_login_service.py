@@ -1,5 +1,5 @@
 from shop.app.core.exceptions import AuthenticationError, PermissionDeniedError
-from shop.app.core.security import verify_password
+from shop.app.utils.security import verify_password
 from shop.app.models.schemas import (
     AuthResponse,
     AuthUserOut,
@@ -50,9 +50,7 @@ class AuthLoginService:
         return AuthResponse(user=self._to_auth_user(user), tokens=tokens)
 
     async def refresh(self, payload: RefreshRequest) -> RefreshResponse:
-        token_data = self._token_service.decode_and_validate_refresh_token(
-            payload.refresh_token
-        )
+        token_data = self._token_service.decode_and_validate_refresh_token(payload.refresh_token)
         new_session_id = generate_token()
 
         async with self._uow as uow:
@@ -66,9 +64,7 @@ class AuthLoginService:
         )
         return RefreshResponse(**tokens.model_dump())
 
-    async def logout(
-        self, payload: LogoutRequest, session_id: str | None = None
-    ) -> None:
+    async def logout(self, payload: LogoutRequest, session_id: str | None = None) -> None:
         async with self._uow as uow:
             await self._token_service.revoke_refresh_token(uow, payload.refresh_token)
             await uow.commit()
@@ -110,16 +106,10 @@ class AuthLoginService:
     async def _rotate_db_token(
         self, uow: UnitOfWork, raw_token: str, token_data: dict, new_sid: str
     ):
-        stored_token = await self._token_service.get_refresh_session_or_unauthorized(
-            uow, raw_token
-        )
-        user = await self._token_service.get_user_for_refresh(
-            uow, stored_token.user_id, token_data
-        )
+        stored_token = await self._token_service.get_refresh_session_or_unauthorized(uow, raw_token)
+        user = await self._token_service.get_user_for_refresh(uow, stored_token.user_id, token_data)
 
-        tokens = await self._token_service.rotate_refresh_token(
-            uow, stored_token.id, user, new_sid
-        )
+        tokens = await self._token_service.rotate_refresh_token(uow, stored_token.id, user, new_sid)
         return user, tokens
 
     async def _handle_auth_failure(self, username: str):

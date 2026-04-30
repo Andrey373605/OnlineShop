@@ -4,6 +4,7 @@ from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorDatabase
 
 from shop.app.core.config import settings
 from shop.app.models.schemas import EventLogOut
+from shop.app.repositories.protocols import EventLogRepository
 from shop.app.utils.get_utc_now import get_utc_now
 
 
@@ -41,7 +42,7 @@ def _build_filter_query(
     return query
 
 
-class EventLogRepositoryMongo:
+class EventLogRepositoryMongo(EventLogRepository):
     def __init__(self, db: AsyncIOMotorDatabase):
         self._db = db
 

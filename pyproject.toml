@@ -25,6 +25,7 @@ dependencies = [
     "tzdata>=2024.1",
     "aiobotocore",
     "ruff>=0.15.7",
+    "types-redis>=4.6.0.20241004",
 ]
 
 [dependency-groups]

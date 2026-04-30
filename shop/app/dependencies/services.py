@@ -2,13 +2,15 @@ from fastapi import Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from shop.app.core.config import settings
-from shop.app.core.ports.storage import StoragePort
+from shop.app.core.ports.file_storage import FileStoragePort
 from shop.app.dependencies.cache import get_cache_service
 from shop.app.dependencies.db import get_uow
 from shop.app.dependencies.mongo import get_mongo_db
 from shop.app.dependencies.pubsub import get_pubsub_service
 from shop.app.dependencies.s3 import get_storage_service
 from shop.app.dependencies.session import get_session_service
+from shop.app.api.presenters.product_image_presenter import ProductImagePresenter
+from shop.app.api.presenters.product_presenter import ProductPresenter
 from shop.app.repositories.event_log_analytics_repository import (
     EventLogAnalyticsRepositoryMongo,
 )
@@ -25,6 +27,7 @@ from shop.app.services.cart_service import CartService
 from shop.app.services.category_service import CategoryService
 from shop.app.services.event_log_analytics_service import EventLogAnalyticsService
 from shop.app.services.event_log_service import EventLogService
+from shop.app.services.media_url_builder import MediaUrlBuilder
 from shop.app.services.order_item_service import OrderItemService
 from shop.app.services.order_service import OrderService
 from shop.app.services.product_image_service import ProductImageService
@@ -56,27 +59,38 @@ async def get_product_service(
     uow: UnitOfWork = Depends(get_uow),
     cache: CacheService = Depends(get_cache_service),
     pubsub: PubSubService = Depends(get_pubsub_service),
-    storage: StoragePort = Depends(get_storage_service),
+    storage: FileStoragePort = Depends(get_storage_service),
 ) -> ProductService:
     return ProductService(
         uow=uow,
         cache=cache,
         pubsub=pubsub,
         storage=storage,
-        media_url_prefix=settings.MEDIA_URL_PREFIX,
         cache_ttl_seconds=settings.PRODUCTS_CACHE_TTL_SECONDS or None,
     )
 
 
+async def get_media_url_builder() -> MediaUrlBuilder:
+    return MediaUrlBuilder(settings.MEDIA_URL_PREFIX)
+
+
 async def get_product_image_service(
     uow: UnitOfWork = Depends(get_uow),
-    storage: StoragePort = Depends(get_storage_service),
+    storage: FileStoragePort = Depends(get_storage_service),
 ) -> ProductImageService:
-    return ProductImageService(
-        uow=uow,
-        storage=storage,
-        media_url_prefix=settings.MEDIA_URL_PREFIX,
-    )
+    return ProductImageService(uow=uow, storage=storage)
+
+
+async def get_product_image_presenter(
+    media_url_builder: MediaUrlBuilder = Depends(get_media_url_builder),
+) -> ProductImagePresenter:
+    return ProductImagePresenter(media_url_builder=media_url_builder)
+
+
+async def get_product_presenter(
+    media_url_builder: MediaUrlBuilder = Depends(get_media_url_builder),
+) -> ProductPresenter:
+    return ProductPresenter(media_url_builder=media_url_builder)
 
 
 async def get_product_specification_service(

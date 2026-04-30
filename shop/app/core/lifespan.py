@@ -3,23 +3,17 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from redis.asyncio import Redis
 
 from shop.app.adapters.s3.storage import S3Storage
-from shop.app.core.cache import create_cache_service
+
 from shop.app.core.config import settings
-from shop.app.core.db import close_db_pool, create_db_pool
-from shop.app.core.mongo import (
-    close_mongo_client,
-    create_mongo_client,
-    get_mongo_database,
-)
-from shop.app.core.mongo_indexes import (
-    ensure_event_log_search_indexes,
-    ensure_event_log_ttl_index,
-)
-from shop.app.core.state import AppState
+
+
+from shop.app.infrastructure.minio_infrastructure import MinioInfrastructure
+from shop.app.infrastructure.mongo_infrastructure import MongoInfrastructure
+from shop.app.infrastructure.postgres_infrastructure import PostgresInfrastructure
+from shop.app.infrastructure.redis_infrastructure import RedisInfrastructure
 from shop.app.services.cache_service import CacheService
 from shop.app.services.pubsub_handlers import (
     make_cache_invalidation_handler,
@@ -32,41 +26,32 @@ from shop.app.services.session_service import SessionService
 logger = logging.getLogger(__name__)
 
 
-def _create_pubsub_redis() -> Redis:
-    """Выделенное Redis-соединение для Pub/Sub (нельзя разделять с data-командами)."""
-    return Redis.from_url(
-        f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
-        password=settings.REDIS_PASSWORD,
-        db=settings.REDIS_DB,
-        decode_responses=True,
+def create_postgres_infrastructure() -> PostgresInfrastructure:
+    return PostgresInfrastructure(
+        url=settings.DATABASE_URL,
+        min_size=settings.POSTGRES_MIN_POOL_SIZE,
+        max_size=settings.POSTGRES_MAX_POOL_SIZE,
     )
 
 
-async def _setup_mongo() -> tuple[AsyncIOMotorClient, AsyncIOMotorDatabase]:
-    client = create_mongo_client()
-    db = get_mongo_database(client)
-    await ensure_event_log_ttl_index(db)
-    await ensure_event_log_search_indexes(db)
-    return client, db
+def create_mongo_infrastructure() -> MongoInfrastructure:
+    return MongoInfrastructure(url=settings.MONGO_URL)
 
 
-def _create_session_service(cache_service: CacheService) -> SessionService:
-    return SessionService(
-        redis_client=cache_service.redis_client,
-        instance_id=settings.INSTANCE_ID,
-        ttl_seconds=settings.USER_SESSION_CACHE_TTL_SECONDS,
-    )
+def create_redis_infrastructure() -> RedisInfrastructure:
+    return RedisInfrastructure(url=settings.REDIS_URL)
 
 
-def _create_storage() -> S3Storage:
-    return S3Storage(
+def create_minio_infrastructure() -> MinioInfrastructure:
+    return MinioInfrastructure(
+        endpoint_url=settings.MINIO_URL,
         access_key=settings.MINIO_ACCESS_KEY,
         secret_key=settings.MINIO_SECRET_KEY,
-        endpoint_url=settings.MINIO_URL,
-        bucket_name=settings.MINIO_BUCKET,
-        max_file_size=settings.IMAGE_MAX_SIZE_BYTES,
-        allowed_extensions=settings.image_allowed_extensions,
     )
+
+
+def create_storage(minio: MinioInfrastructure) -> S3Storage:
+    return S3Storage(client=minio.get_client(), bucket_name=settings.MINIO_BUCKET)
 
 
 async def _setup_pubsub(
@@ -111,26 +96,35 @@ async def _close_pubsub(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # --- startup ---
-    db_pool = await create_db_pool()
-    cache_service = await create_cache_service()
-    mongo_client, mongo_db = await _setup_mongo()
-    session_service = _create_session_service(cache_service)
-    pubsub_service, pubsub_redis, pubsub_task = await _setup_pubsub(
-        cache_service,
-        session_service,
-    )
-    storage = _create_storage()
+    # postgres
+    postgres = create_postgres_infrastructure()
+    await postgres.connect()
 
-    app.state.ext = AppState(
-        db_pool=db_pool,
-        cache_service=cache_service,
-        mongo_client=mongo_client,
-        mongo_db=mongo_db,
-        session_service=session_service,
-        pubsub_service=pubsub_service,
-        storage=storage,
-    )
+    # redis
+    redis = create_redis_infrastructure()
+    await redis.connect()
+
+    # mongo
+    mongo = create_mongo_infrastructure()
+    mongo.connect()
+
+    # S3 infrastructure + adapters
+    minio = create_minio_infrastructure()
+    await minio.connect()
+
+    storage = create_storage(minio)
+    # await storage.ensure_ready()
+
+    # app.state.ext = AppState(
+    #     db_pool=db_pool,
+    #     cache_service=cache_service,
+    #     mongo_client=mongo_client,
+    #     mongo_db=mongo_db,
+    #     session_service=session_service,
+    #     pubsub_service=pubsub_service,
+    #     storage=storage,
+    #     storage_readiness=storage,
+    # )
 
     logger.info(
         "Application started: instance_id=%s, pub/sub channels=%s",
@@ -140,8 +134,9 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # --- shutdown (обратный порядок) ---
-    await _close_pubsub(pubsub_service, pubsub_redis, pubsub_task)
-    close_mongo_client(mongo_client)
-    await cache_service.disconnect()
-    await close_db_pool(db_pool)
+    # --- shutdown ---
+
+    await minio.close()
+    mongo.close()
+    await redis.close()
+    await postgres.close()
