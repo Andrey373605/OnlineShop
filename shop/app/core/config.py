@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
+    POSTGRES_MIN_POOL_SIZE: int = 1
+    POSTGRES_MAX_POOL_SIZE: int = 10
 
     # FastAPI settings
     APP_HOST: str = "0.0.0.0"
@@ -45,8 +47,12 @@ class Settings(BaseSettings):
     # Redis Settings
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
-    REDIS_DB: int = 0
+    REDIS_DB_NUMBER: int = 0
     REDIS_PASSWORD: str | None = None
+
+    @property
+    def REDIS_URL(self) -> str:
+        return f"redis://{self.REDIS_PASSWORD}:{self.REDIS_HOST}@{self.REDIS_PORT}:{self.REDIS_DB}"
 
     # Failed login attempts
     MAX_FAILED_ATTEMPTS: int = 3
@@ -79,8 +85,6 @@ class Settings(BaseSettings):
     # IANA-имя пояса для меток времени в логах (например Europe/Moscow, UTC)
     EVENT_LOG_TIMEZONE: str = "UTC"
 
-    SECONDS_IN_MINUTE: int = 60
-
     @field_validator("EVENT_LOG_TIMEZONE")
     @classmethod
     def validate_event_log_timezone(cls, v: str) -> str:
@@ -109,11 +113,7 @@ class Settings(BaseSettings):
 
     @property
     def image_allowed_extensions(self) -> set[str]:
-        return {
-            item.strip()
-            for item in self.IMAGE_ALLOWED_EXTENSIONS.split(",")
-            if item.strip()
-        }
+        return {item.strip() for item in self.IMAGE_ALLOWED_EXTENSIONS.split(",") if item.strip()}
 
     model_config = ConfigDict(
         env_file=".env",

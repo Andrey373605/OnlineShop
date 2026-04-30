@@ -7,7 +7,7 @@ class FileStoragePort(ABC):
     """Abstraction for operations with file storage"""
 
     @abstractmethod
-    async def upload(self, source: UploadSource) -> str:
+    async def upload(self, storage_key: str, source: UploadSource) -> str:
         """Upload file and return storage key"""
         ...
 
