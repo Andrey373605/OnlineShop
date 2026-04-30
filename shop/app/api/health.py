@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from starlette import status
 from starlette.responses import JSONResponse
 
-from shop.app.adapters.s3.exceptions import StorageUnavailableError
 from shop.app.core.config import settings
+from shop.app.core.exceptions import StorageUnavailableError
 from shop.app.core.ports.file_storage import StorageReadinessPort
 from shop.app.core.state import AppState, get_app_state
 from shop.app.dependencies.s3 import get_storage_readiness
