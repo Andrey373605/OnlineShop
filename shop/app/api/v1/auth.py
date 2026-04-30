@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from shop.app.core.security import decode_token
+from shop.app.utils.security import decode_token
 from shop.app.dependencies.auth import get_current_user, oauth2_scheme
 from shop.app.dependencies.services import get_auth_service, get_event_log_service
 from shop.app.dependencies.session import get_session_service
