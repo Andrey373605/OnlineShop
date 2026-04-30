@@ -7,6 +7,9 @@ CREATE INDEX idx_products_category_published ON products(category_id, is_publish
 CREATE INDEX idx_products_price_stock ON products(price, stock);
 CREATE INDEX idx_products_created_at ON products(created_at);
 
+-- Индексы для таблицы products_images
+CREATE INDEX idx_products_images_storage_key ON product_images(storage_key);
+
 -- Индексы для таблицы reviews
 CREATE INDEX idx_reviews_product_rating ON reviews(product_id, rating);
 CREATE INDEX idx_reviews_user_created ON reviews(user_id, created_at);

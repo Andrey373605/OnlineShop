@@ -1,26 +1,14 @@
 from pydantic import BaseModel
 
 
-class ProductImageBase(BaseModel):
+class ProductImageCreate(BaseModel):
     product_id: int
 
 
-class ProductImageCreate(ProductImageBase):
-    pass
-
-
-class ProductImageUpdate(BaseModel):
-    pass
-
-
-class ProductImageOut(ProductImageBase):
+class ProductImageOut(BaseModel):
     id: int
-    image_path: str
-
-
-class ProductImageResponse(BaseModel):
-    id: int
-    message: str
+    product_id: int
+    image_url: str
 
 
 class ProductImagesDeleteResponse(BaseModel):

@@ -1,83 +1,42 @@
-from contextlib import asynccontextmanager
+from aiobotocore.client import AioBaseClient
 
-from botocore.config import Config
-from botocore.exceptions import ClientError
-from fastapi import UploadFile
+from botocore.exceptions import ClientError, BotoCoreError
 
-from shop.app.adapters.s3.client import create_aiobotocore_client
-from shop.app.adapters.s3.filename_gen import UUIDFilenameGenerator
-from shop.app.adapters.s3.validator import FileValidationRules, FileValidator
-from shop.app.core.exceptions import DomainValidationError, S3DeleteError, S3UploadError
-from shop.app.core.ports.storage import StoragePort
+from shop.app.core.exceptions import StorageUnavailableError, StorageValidationError
+
+from shop.app.core.ports.file_storage import FileStoragePort
+from shop.app.models.domain.upload_source import UploadSource
 
 
-class S3Storage(StoragePort):
+class S3Storage(FileStoragePort):
     """File storage adapter S3-compatible client surface"""
 
-    def __init__(
-        self,
-        *,
-        endpoint_url: str,
-        access_key: str,
-        secret_key: str,
-        bucket_name: str,
-        max_file_size: int,
-        allowed_extensions: set[str],
-    ) -> None:
+    def __init__(self, *, client: AioBaseClient, bucket_name: str) -> None:
+        self._client = client
         self._bucket_name = bucket_name
-        self._validator = FileValidator(
-            FileValidationRules(
-                max_size_bytes=max_file_size,
-                allowed_extensions=allowed_extensions,
-            )
-        )
-        self._filename_generator = UUIDFilenameGenerator()
-        self._endpoint_url = endpoint_url
-        self._access_key = access_key
-        self._secret_key = secret_key
-        self._client_config = Config(signature_version="s3v4")
 
-    @asynccontextmanager
-    async def _get_client(self):
-        async with create_aiobotocore_client(
-            endpoint_url=self._endpoint_url,
-            access_key=self._access_key,
-            secret_key=self._secret_key,
-            config=self._client_config,
-        ) as client:
-            yield client
+    async def upload(self, storage_key: str, source: UploadSource) -> str:
+        await self._upload_to_s3(source, storage_key)
+        return storage_key
 
-    async def upload_file(
-        self,
-        file: UploadFile,
-        content_length: int | None = None,
-    ) -> str:
-        self._validator.validate(file, content_length)
-        filename = self._filename_generator.generate(file)
-        await self._upload_to_s3(file, filename)
-        return filename
-
-    async def delete_file(self, key: str) -> None:
+    async def delete(self, key: str) -> None:
         if not key:
-            raise DomainValidationError("Invalid key")
-
+            raise StorageValidationError("Invalid key")
         await self._delete_from_s3(key)
 
-    async def _upload_to_s3(self, file: UploadFile, filename: str) -> None:
-        async with self._get_client() as client:
-            try:
-                await client.put_object(
-                    Body=file.file,
-                    Bucket=self._bucket_name,
-                    Key=filename,
-                    ContentType=file.content_type,
-                )
-            except ClientError as exc:
-                raise S3UploadError
+    async def _upload_to_s3(self, source: UploadSource, storage_key: str) -> None:
+        try:
+            await self._client.put_object(
+                Body=source.stream,
+                Bucket=self._bucket_name,
+                Key=storage_key,
+                ContentType=source.content_type,
+            )
+        except (ClientError, BotoCoreError) as exc:
+            raise StorageUnavailableError("Failed to upload object to storage") from exc
 
     async def _delete_from_s3(self, key: str) -> None:
-        async with self._get_client() as client:
-            try:
-                await client.delete_object(Bucket=self._bucket_name, Key=key)
-            except ClientError as exc:
-                raise S3DeleteError
+        try:
+            await self._client.delete_object(Bucket=self._bucket_name, Key=key)
+        except (ClientError, BotoCoreError) as exc:
+            raise StorageUnavailableError("Failed to delete object to storage") from exc

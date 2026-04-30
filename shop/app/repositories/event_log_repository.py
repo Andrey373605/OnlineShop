@@ -1,23 +1,35 @@
 from datetime import datetime
 
 from shop.app.models.schemas import EventLogOut
+from shop.app.repositories.protocols import EventLogRepository
 
 
-class EventLogRepositorySql:
-    def __init__(self, conn, queries):
+class EventLogRepositorySql(EventLogRepository):
+    def __init__(self, conn):
         self._conn = conn
-        self._queries = queries
 
     async def get_all(self, limit: int, offset: int) -> list[EventLogOut]:
-        rows = await self._queries.get_all_event_log(
-            self._conn,
-            limit=limit,
-            offset=offset,
+        rows = await self._conn.fetch(
+            """
+            SELECT id, event_type, user_id, description, ip_address, user_agent, created_at
+            FROM event_log
+            ORDER BY created_at DESC
+            LIMIT $1 OFFSET $2;
+            """,
+            limit,
+            offset,
         )
         return [EventLogOut(**row) for row in rows]
 
     async def get_by_id(self, event_id: int) -> EventLogOut | None:
-        row = await self._queries.get_event_log_by_id(self._conn, id=event_id)
+        row = await self._conn.fetchrow(
+            """
+            SELECT id, event_type, user_id, description, ip_address, user_agent, created_at
+            FROM event_log
+            WHERE id = $1;
+            """,
+            event_id,
+        )
         return EventLogOut(**row) if row else None
 
     async def get_by_user_id(
@@ -26,11 +38,17 @@ class EventLogRepositorySql:
         limit: int,
         offset: int,
     ) -> list[EventLogOut]:
-        rows = await self._queries.get_events_by_user_id(
-            self._conn,
-            user_id=user_id,
-            limit=limit,
-            offset=offset,
+        rows = await self._conn.fetch(
+            """
+            SELECT id, event_type, user_id, description, ip_address, user_agent, created_at
+            FROM event_log
+            WHERE user_id = $1
+            ORDER BY created_at DESC
+            LIMIT $2 OFFSET $3;
+            """,
+            user_id,
+            limit,
+            offset,
         )
         return [EventLogOut(**row) for row in rows]
 
@@ -45,10 +63,18 @@ class EventLogRepositorySql:
         offset: int,
     ) -> tuple[list[EventLogOut], int]:
         # Заглушка: полная фильтрация реализована в EventLogRepositoryMongo.
-        # При использовании SQL можно добавить соответствующие запросы в queries.
         if user_id is not None:
-            rows = await self._queries.get_events_by_user_id(
-                self._conn, user_id=user_id, limit=limit, offset=offset
+            rows = await self._conn.fetch(
+                """
+                SELECT id, event_type, user_id, description, ip_address, user_agent, created_at
+                FROM event_log
+                WHERE user_id = $1
+                ORDER BY created_at DESC
+                LIMIT $2 OFFSET $3;
+                """,
+                user_id,
+                limit,
+                offset,
             )
             items = [EventLogOut(**row) for row in rows]
         else:
@@ -59,9 +85,23 @@ class EventLogRepositorySql:
 
     async def create(self, data: dict) -> int:
         filtered = {k: data[k] for k in self._CREATE_KEYS if k in data}
-        result = await self._queries.create_event_log(self._conn, **filtered)
+        result = await self._conn.fetchrow(
+            """
+            INSERT INTO event_log (event_type, user_id, description, ip_address, user_agent)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id;
+            """,
+            filtered.get("event_type"),
+            filtered.get("user_id"),
+            filtered.get("description"),
+            filtered.get("ip_address"),
+            filtered.get("user_agent"),
+        )
         return result["id"]
 
     async def delete(self, event_id: int) -> bool:
-        result = await self._queries.delete_event_log(self._conn, id=event_id)
+        result = await self._conn.fetchrow(
+            "DELETE FROM event_log WHERE id = $1 RETURNING id;",
+            event_id,
+        )
         return bool(result)

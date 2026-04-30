@@ -7,7 +7,8 @@ import asyncpg
 from fastapi import Request
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
-from shop.app.core.ports.storage import StoragePort
+from shop.app.core.ports.base import HealthCheckPort
+from shop.app.core.ports.file_storage import FileStoragePort
 from shop.app.services.cache_service import CacheService
 from shop.app.services.pubsub_service import PubSubService
 from shop.app.services.session_service import SessionService
@@ -15,7 +16,6 @@ from shop.app.services.session_service import SessionService
 
 @dataclass(slots=True)
 class AppState:
-    """Типизированный контейнер ресурсов, созданных в lifespan."""
 
     db_pool: asyncpg.Pool
     cache_service: CacheService
@@ -23,10 +23,9 @@ class AppState:
     mongo_db: AsyncIOMotorDatabase
     session_service: SessionService
     pubsub_service: PubSubService
-    storage: StoragePort
+    storage: FileStoragePort
+    storage_readiness: HealthCheckPort
 
 
 def get_app_state(request: Request) -> AppState:
-    """Возвращает типизированный контейнер ресурсов приложения."""
-
     return cast(AppState, request.app.state.ext)

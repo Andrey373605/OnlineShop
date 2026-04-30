@@ -4,7 +4,7 @@ from shop.app.core.exceptions import (
     OperationFailedError,
     ServiceUnavailableError,
 )
-from shop.app.core.security import hash_password
+from shop.app.utils.security import hash_password
 from shop.app.models.schemas import (
     AuthUserOut,
     RegisterRequest,
@@ -33,9 +33,7 @@ class AuthRegistrationService:
         )
 
     @staticmethod
-    async def _ensure_unique_credentials(
-        uow: UnitOfWork, username: str, email: str
-    ) -> None:
+    async def _ensure_unique_credentials(uow: UnitOfWork, username: str, email: str) -> None:
         if await uow.users.exists_with_username(username):
             raise AlreadyExistsError("Username")
         if await uow.users.exists_with_email(email):
