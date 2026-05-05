@@ -8,10 +8,9 @@ from fastapi import Request
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from shop.app.core.ports.base import HealthCheckPort
-from shop.app.core.ports.file_storage import FileStoragePort
-from shop.app.services.cache_service import CacheService
-from shop.app.services.pubsub_service import PubSubService
-from shop.app.services.session_service import SessionService
+from shop.app.application.interfaces.services.files.file_storage import FileStoragePort
+from depricated.services.cache_service import CacheService
+from depricated.services.session_service import SessionService
 
 
 @dataclass(slots=True)
@@ -22,7 +21,6 @@ class AppState:
     mongo_client: AsyncIOMotorClient
     mongo_db: AsyncIOMotorDatabase
     session_service: SessionService
-    pubsub_service: PubSubService
     storage: FileStoragePort
     storage_readiness: HealthCheckPort
 
