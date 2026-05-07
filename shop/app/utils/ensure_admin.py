@@ -1,5 +1,4 @@
 from shop.app.core.config import settings
-from shop.app.core.exceptions import PermissionDeniedError
 from shop.app.models.schemas import UserOut
 
 
@@ -13,4 +12,4 @@ def is_admin(user: UserOut) -> bool:
 
 def _ensure_admin(current_user: UserOut) -> None:
     if not is_admin(current_user):
-        raise PermissionDeniedError("Admin privileges required")
+        raise Exception("Admin privileges required")

@@ -1,15 +1,11 @@
-import logging
-
 from fastapi import FastAPI
 
-from shop.app.api.health import router as health_router
-from shop.app.api.v1.router import get_api_router
+from shop.app.presentation.fastapi.routers.health import router as health_router
+from shop.app.presentation.fastapi.routers import get_api_router
 from shop.app.core.config import settings
 from shop.app.core.exception_handlers import setup_exception_handlers
 from shop.app.core.lifespan import lifespan
-from shop.app.middlewares.registration import setup_middleware
-
-logging.basicConfig(level=logging.INFO)
+from shop.app.presentation.core.registration import setup_middleware
 
 
 def create_app() -> FastAPI:
